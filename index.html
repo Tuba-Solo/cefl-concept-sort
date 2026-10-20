@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CEFL 7–9 Concept Sort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one board, three grade columns read as one three-year course; tabs for Sort, Progression, Room. */
+:root {
+  --bg: #edf0ee;
+  --surface: #ffffff;
+  --sunk: #e3e8e5;
+  --ink: #16201f;
+  --muted: #56625f;
+  --line: #ccd4d0;
+  --focus: #1f5fbf;
+  --oi1: #2c6a88;
+  --oi2: #8a6510;
+  --oi3: #7a3c69;
+  --oi1-soft: #e2edf2;
+  --oi2-soft: #f3ecdb;
+  --oi3-soft: #f1e3ed;
+  --ok: #2b7a4b;
+  --ok-soft: #e0f0e6;
+  --bad: #b13d2b;
+  --bad-soft: #f7e3df;
+  --sel: #1f5fbf;
+  --sel-soft: #dfe9fa;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121817; --surface: #1b2322; --sunk: #161d1c; --ink: #e6ecea; --muted: #9eaba7; --line: #2f3b39; --focus: #7aa7f0;
+    --oi1: #7fb6d2; --oi2: #d7b25a; --oi3: #d495c3;
+    --oi1-soft: #1c2c33; --oi2-soft: #2e2817; --oi3-soft: #2e1f2a;
+    --ok: #6cc592; --ok-soft: #173024; --bad: #ef8a78; --bad-soft: #3a1f1b; --sel: #7aa7f0; --sel-soft: #1d2a40;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121817; --surface: #1b2322; --sunk: #161d1c; --ink: #e6ecea; --muted: #9eaba7; --line: #2f3b39; --focus: #7aa7f0;
+  --oi1: #7fb6d2; --oi2: #d7b25a; --oi3: #d495c3;
+  --oi1-soft: #1c2c33; --oi2-soft: #2e2817; --oi3-soft: #2e1f2a;
+  --ok: #6cc592; --ok-soft: #173024; --bad: #ef8a78; --bad-soft: #3a1f1b; --sel: #7aa7f0; --sel-soft: #1d2a40;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 120px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 68ch; margin: 6px 0 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); font-size: 0.78rem; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+nav.tabs { display: flex; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 10px; }
+nav.tabs button { border: 0; background: transparent; padding: 7px 14px; border-radius: 7px; cursor: pointer; font-weight: 600; color: var(--muted); }
+nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+nav.tabs button .lock { font-size: 0.75rem; margin-left: 4px; opacity: 0.7; }
+
+.steps { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; }
+.steps li { display: flex; gap: 8px; align-items: baseline; }
+.steps b { font-family: var(--f-mono); color: var(--ink); font-weight: 500; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
+.toolbar .count { font-weight: 600; }
+.toolbar .count small { color: var(--muted); font-weight: 400; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.quiet { background: transparent; }
+.status { font-size: 0.85rem; color: var(--muted); }
+
+.work { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.trayhead { font-weight: 700; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+.trayside { min-width: 0; }
+.tray { max-height: 42vh; overflow-y: auto; align-content: flex-start;
+  background: var(--sunk); border: 1px dashed var(--line); border-radius: 12px; padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; min-height: 64px; }
+.tray.drop { border-color: var(--sel); background: var(--sel-soft); }
+.tray .empty { color: var(--muted); align-self: center; padding: 4px 6px; }
+
+.tile { display: inline-flex; align-items: flex-start; gap: 8px; text-align: left; max-width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
+.tile:hover { border-color: var(--muted); }
+.tile[aria-pressed="true"] { border-color: var(--sel); background: var(--sel-soft); box-shadow: 0 0 0 2px var(--sel); }
+.tile.ok { border-color: var(--ok); background: var(--ok-soft); }
+.tile.bad { border-color: var(--bad); background: var(--bad-soft); }
+.tile .mark { font-weight: 700; flex: none; width: 1.1em; }
+.tile.ok .mark { color: var(--ok); }
+.tile.bad .mark { color: var(--bad); }
+.tile .was { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.tile.dim { opacity: 0.35; }
+.tile.hit { box-shadow: 0 0 0 2px var(--ink); }
+.tile[draggable="true"] { cursor: grab; }
+
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+@media (min-width: 1100px) {
+  .work { grid-template-columns: 300px minmax(0, 1fr); }
+  .trayside { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); }
+  .tray { max-height: calc(100vh - 140px); flex-direction: column; flex-wrap: nowrap; }
+  .work.answers { grid-template-columns: minmax(0, 1fr); }
+}
+.col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.colhead { position: relative; padding: 4px 2px 10px; border-bottom: 2px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.colhead h2 { font-size: 1.35rem; }
+.colhead .yr { font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); }
+.box { border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 10px; min-height: 96px; display: flex; flex-direction: column; gap: 8px; }
+.box h3 { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.box h3::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+.box .slot { display: flex; flex-direction: column; gap: 6px; }
+.box[data-oi="1"] { --c: var(--oi1); --soft: var(--oi1-soft); }
+.box[data-oi="2"] { --c: var(--oi2); --soft: var(--oi2-soft); }
+.box[data-oi="3"] { --c: var(--oi3); --soft: var(--oi3-soft); }
+.box { border-top: 3px solid var(--c); }
+.box.target { cursor: pointer; background: var(--soft); outline: 2px dashed var(--c); outline-offset: -4px; }
+.box.drop { background: var(--soft); outline: 2px solid var(--c); outline-offset: -4px; }
+.box .hint { color: var(--muted); font-size: 0.82rem; }
+
+.selbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--ink); color: var(--bg); padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.selbar .what { max-width: 60ch; }
+.selbar .btn { background: transparent; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 45%, transparent); }
+
+.score { margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.score .big { font-family: var(--f-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score span { color: var(--muted); }
+.score label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; color: var(--ink); }
+
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+.dlg { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.dlg .head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.dlg h2 { font-size: 1.3rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--line); }
+.chip.oi { background: var(--soft); border-color: var(--c); }
+.chip.oi[data-oi="1"] { --c: var(--oi1); --soft: var(--oi1-soft); }
+.chip.oi[data-oi="2"] { --c: var(--oi2); --soft: var(--oi2-soft); }
+.chip.oi[data-oi="3"] { --c: var(--oi3); --soft: var(--oi3-soft); }
+.stmts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.stmts li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; white-space: pre-line; }
+.stmts .mono { display: block; color: var(--muted); margin-top: 2px; }
+.lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.note { background: var(--sunk); border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; }
+.strand { display: flex; flex-direction: column; gap: 6px; }
+.strand button { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 10px; cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+.strand button .g { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); flex: none; width: 3.2em; }
+.strand button[aria-current="true"] { border-color: var(--ink); }
+
+.locked { margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; max-width: 60ch; }
+.locked h2 { font-size: 1.2rem; margin-bottom: 6px; }
+
+.prog-filter { margin: 18px 0 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.prog-filter button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; }
+.prog-filter button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.prog { display: grid; grid-template-columns: minmax(150px, 0.7fr) repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.prog > div { padding: 12px; border-top: 1px solid var(--line); min-width: 0; }
+.prog > .h { border-top: 0; background: var(--sunk); font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; }
+.prog > .oiband { grid-column: 1 / -1; background: var(--soft); border-top: 2px solid var(--c); font-size: 0.9rem; }
+.prog > .oiband b { font-family: var(--f-display); font-size: 1rem; }
+.prog > .oiband[data-oi="1"] { --c: var(--oi1); --soft: var(--oi1-soft); }
+.prog > .oiband[data-oi="2"] { --c: var(--oi2); --soft: var(--oi2-soft); }
+.prog > .oiband[data-oi="3"] { --c: var(--oi3); --soft: var(--oi3-soft); }
+.prog .rowlab { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); }
+.prog .cell { display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--line); }
+.prog .gq { font-weight: 700; }
+.prog .lo { color: var(--muted); font-size: 0.9rem; }
+.prog .cell .tile { font-size: 0.85rem; padding: 5px 8px; }
+.prog .gtag { display: none; font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); }
+
+.room-sum { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 150px; }
+.stat .n { font-family: var(--f-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .k { color: var(--muted); font-size: 0.85rem; }
+.room-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.room-ctl label { display: flex; gap: 6px; align-items: center; cursor: pointer; font-weight: 600; }
+.confirm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 8px; padding: 8px 12px; }
+.rtable { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: middle; }
+thead th { border-top: 0; background: var(--sunk); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.dist { display: flex; gap: 6px; min-width: 240px; }
+.dist .seg { flex: 1; display: flex; flex-direction: column; gap: 3px; font-family: var(--f-mono); font-size: 0.72rem; color: var(--muted); }
+.dist .bar { height: 10px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.dist .bar i { display: block; height: 100%; background: var(--muted); }
+.dist .seg.right .bar i { background: var(--ok); }
+.dist .seg.right { color: var(--ok); font-weight: 500; }
+.rlabel { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+
+.toast { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; z-index: 30; font-weight: 600; max-width: calc(100vw - 32px); }
+
+@media (max-width: 860px) {
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .prog { grid-template-columns: minmax(0, 1fr); }
+  .prog > .h { display: none; }
+  .prog .cell { border-left: 0; }
+  .prog .gtag { display: block; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tile, .box { transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>CEFL 7–9 Concept Sort</h1>
+      <p class="lede">CEFL is one course that runs for three years. All three grades share the same three organizing ideas, and each grade has its own outcomes inside them. Place each tile where the curriculum puts it.</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" id="tab-sort" aria-selected="true" data-view="sort">Sort</button>
+      <button role="tab" id="tab-prog" aria-selected="false" data-view="prog">Progression</button>
+      <button role="tab" id="tab-room" aria-selected="false" data-view="room" hidden>Room</button>
+    </nav>
+  </header>
+
+  <section id="view-sort">
+    <ol class="steps">
+      <li><b>1</b> Tap a tile.</li>
+      <li><b>2</b> Tap the box for the grade and organizing idea where it belongs.</li>
+      <li><b>3</b> To move a tile, tap it again and choose a new box.</li>
+      <li><b>4</b> When every tile is placed, press Check.</li>
+    </ol>
+    <div class="toolbar">
+      <div class="count" id="count"></div>
+      <div class="btns">
+        <span class="status" id="saveStatus" aria-live="polite"></span>
+        <button class="btn quiet" id="btnReset">Start over</button>
+        <button class="btn primary" id="btnCheck">Check</button>
+      </div>
+    </div>
+    <div id="resetConfirm" hidden class="confirm" style="margin-bottom:10px">
+      <span>Move every tile back to the tray?</span>
+      <button class="btn" id="resetYes">Yes, start over</button>
+      <button class="btn quiet" id="resetNo">Keep my sort</button>
+    </div>
+    <div id="checkConfirm" hidden class="confirm" style="margin-bottom:10px">
+      <span id="checkConfirmText"></span>
+      <button class="btn" id="checkYes">Check anyway</button>
+      <button class="btn quiet" id="checkNo">Keep sorting</button>
+    </div>
+    <div id="score" hidden></div>
+    <div class="work" id="work">
+      <div class="trayside" id="trayside">
+        <div class="trayhead">Tiles to place</div>
+        <div class="tray" id="tray" aria-label="Unplaced tiles"></div>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+  </section>
+
+  <section id="view-prog" hidden></section>
+  <section id="view-room" hidden></section>
+</div>
+
+<div class="selbar" id="selbar" hidden>
+  <span class="what" id="selWhat"></span>
+  <button class="btn" id="selTray">Back to tray</button>
+  <button class="btn" id="selCancel">Cancel</button>
+</div>
+
+<dialog id="detail"><div class="dlg" id="detailBody"></div></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script type="application/json" id="cefl-data">{"tiles": [{"id": "7a", "g": 7, "oi": 1, "lo": 1, "label": "Tell the difference between a job and a career", "items": [{"code": "OI.1.GQ.1.LO.1.SP.1", "text": "Explore the difference between jobs and careers."}, {"code": "OI.1.GQ.1.LO.1.K.5", "text": "A job is a specific role or position while a career is an evolving pathway of learning, work, and personal experiences."}], "thread": "careers"}, {"id": "7b", "g": 7, "oi": 1, "lo": 1, "label": "Find careers that need the same transferable skills", "items": [{"code": "OI.1.GQ.1.LO.1.SP.4", "text": "Identify different careers that require similar transferable skills."}, {"code": "OI.1.GQ.1.LO.1.K.6", "text": "Transferable skills are critical to develop and are required across careers."}, {"code": "OI.1.GQ.1.LO.1.K.7", "text": "Transferable skills can be developed through education and experiences over time and are applied in many different aspects of life and career."}], "thread": "skills"}, {"id": "7c", "g": 7, "oi": 1, "lo": 1, "label": "Rank careers according to personal interests", "items": [{"code": "OI.1.GQ.1.LO.1.SP.8", "text": "Rank different careers according to personal interests."}, {"code": "OI.1.GQ.1.LO.1.SP.3", "text": "Evaluate how different careers align with personal interests and values."}, {"code": "OI.1.GQ.1.LO.1.K.2", "text": "Personal identity, interests, values, and experiences influence career aspirations."}], "thread": "careers"}, {"id": "7d", "g": 7, "oi": 1, "lo": 2, "label": "Compare the type of learning offered at post-secondary institutions in the community", "items": [{"code": "OI.1.GQ.2.LO.2.SP.1", "text": "Identify post-secondary institutions in the community."}, {"code": "OI.1.GQ.2.LO.2.SP.2", "text": "Compare the type of learning prioritized at different post-secondary institutions in the community."}, {"code": "OI.1.GQ.2.LO.2.K.3", "text": "Specific post-secondary pathways prioritize specific types of learning that can include academic, theoretical, applied skills, and hands-on learning. Each of these pathways prepares individuals to begin a career."}, {"code": "OI.1.GQ.2.LO.2.K.7", "text": "Universities, colleges, and polytechnics offer different post-secondary pathways that can all lead to meaningful careers."}], "thread": "postsec"}, {"id": "7e", "g": 7, "oi": 1, "lo": 2, "label": "Identify labour market shortages and surpluses", "items": [{"code": "OI.1.GQ.2.LO.2.SP.3", "text": "Identify high-demand and low-demand careers according to the current labour market."}, {"code": "OI.1.GQ.2.LO.2.SP.5", "text": "Identify areas with labour market surplus and shortage according to the current market."}, {"code": "OI.1.GQ.2.LO.2.K.11", "text": "The labour market is the concept of individuals looking for work and employers looking to hire individuals, which shifts over time depending on the needs of the economy."}, {"code": "OI.1.GQ.2.LO.2.K.12", "text": "There are labour market shortages and surpluses."}], "thread": "labour"}, {"id": "7f", "g": 7, "oi": 1, "lo": 2, "label": "List the costs of post-secondary pathways beside the income of the matching career", "items": [{"code": "OI.1.GQ.2.LO.2.SP.4", "text": "Develop a list of the costs of different post-secondary pathways and the employment income of the corresponding career."}, {"code": "OI.1.GQ.2.LO.2.K.9", "text": "Post-secondary pathways differ in cost and can impact an individual’s financial security by affecting savings, debt, and future financial choices. Costs can include tuition, fees, and living expenses."}, {"code": "OI.1.GQ.2.LO.2.K.15", "text": "Overall financial outcomes, including employment income, job stability, and employment benefits, can vary significantly across careers and are influenced by the labour market."}], "thread": "postsec-cost"}, {"id": "7g", "g": 7, "oi": 1, "lo": 2, "label": "Discuss the equal value of two pathways, such as a degree and an apprenticeship", "items": [{"code": "OI.1.GQ.2.LO.2.SP.6", "text": "Discuss the equal value of at least two pathways (e.g., degree and apprenticeship pathways) by linking each to distinct skills, contributions, and career opportunities."}, {"code": "OI.1.GQ.2.LO.2.K.5", "text": "All post-secondary pathways are valuable and can help lead to employment. Some pathways provide direct entry into the workforce while others prioritize significant learning and skill development before entering the workforce."}], "thread": "postsec"}, {"id": "7h", "g": 7, "oi": 2, "lo": 3, "label": "Work environments: indoor or outdoor, in-person or virtual, alone or on a team", "items": [{"code": "OI.2.GQ.3.LO.3.K.5", "text": "Individuals can work in different environments or combinations of environments, such as\n- indoor or outdoor\n- in-person or virtual\n- near or far from home"}, {"code": "OI.2.GQ.3.LO.3.K.6", "text": "Work can be independent or with a team."}, {"code": "OI.2.GQ.3.LO.3.SP.4", "text": "Discuss personal preferences related to work."}], "thread": "experiences"}, {"id": "7i", "g": 7, "oi": 2, "lo": 3, "label": "Employment terms: full-time or part-time, regular or casual, permanent or temporary", "items": [{"code": "OI.2.GQ.3.LO.3.K.8", "text": "Employment hours can be full-time or part-time."}, {"code": "OI.2.GQ.3.LO.3.K.9", "text": "Employment schedules can be regular or casual."}, {"code": "OI.2.GQ.3.LO.3.K.10", "text": "Employment contracts can be permanent or temporary, e.g., seasonal contracts."}], "thread": "experiences"}, {"id": "7j", "g": 7, "oi": 2, "lo": 3, "label": "Relate work-life balance to employment choices", "items": [{"code": "OI.2.GQ.3.LO.3.SP.5", "text": "Relate work-life balance to employment choices."}, {"code": "OI.2.GQ.3.LO.3.SP.6", "text": "Reflect on work-life balance based on personal extracurricular, curricular, or work commitments."}, {"code": "OI.2.GQ.3.LO.3.K.11", "text": "Choices related to employment can foster work-life balance."}, {"code": "OI.2.GQ.3.LO.3.K.12", "text": "Work-life balance is the extent to which experiences are managed."}], "thread": "experiences"}, {"id": "7k", "g": 7, "oi": 2, "lo": 3, "label": "How workplaces promote belonging and safety", "items": [{"code": "OI.2.GQ.3.LO.3.SP.7", "text": "Discuss ways that workplaces can promote a sense of belonging and safety."}, {"code": "OI.2.GQ.3.LO.3.K.13", "text": "Choices related to workplace can influence sense of belonging and safety."}, {"code": "OI.2.GQ.3.LO.3.K.14", "text": "Workplace culture that promotes diversity, equity, and inclusion can contribute to sense of belonging."}, {"code": "OI.2.GQ.3.LO.3.K.15", "text": "Workplace safety policies and practices can contribute to a safe workplace."}], "thread": "experiences"}, {"id": "7l", "g": 7, "oi": 3, "lo": 4, "label": "Forms of employment income: wages, salary, commission, tips", "items": [{"code": "OI.3.GQ.4.LO.4.SP.3", "text": "Compare and contrast the advantages and limitations of different forms of employment income."}, {"code": "OI.3.GQ.4.LO.4.K.5", "text": "Employment income can be provided through wages, salaries, commissions, gratuities, bonuses, and profits from entrepreneurship."}, {"code": "OI.3.GQ.4.LO.4.K.8", "text": "Wages are employment income based on an hourly rate and are commonly earned in entry-level or trades positions, where total income depends on hours worked."}, {"code": "OI.3.GQ.4.LO.4.K.11", "text": "Salary is employment income that provides a fixed amount of income regardless of how many hours are worked. This is more common in professional, managerial, or administrative jobs."}, {"code": "OI.3.GQ.4.LO.4.K.12", "text": "Commission is a form of employment income that is a percentage of an amount. Jobs in real estate, sales, or insurance typically pay on a commission basis."}, {"code": "OI.3.GQ.4.LO.4.K.13", "text": "Tips and gratuities are a form of employment income that are typical in the service and hospitality industry and are voluntary payments given by customers for service."}], "thread": "income"}, {"id": "7m", "g": 7, "oi": 3, "lo": 4, "label": "Calculate income tax withheld and net pay, including CPP and EI", "items": [{"code": "OI.3.GQ.4.LO.4.SP.4", "text": "Apply current tax rates to calculate income tax withheld and determine net pay."}, {"code": "OI.3.GQ.4.LO.4.K.14", "text": "Gross income is the total employment income before taxes and deductions. Net income or “take-home pay” is the amount remaining after taxes and deductions."}, {"code": "OI.3.GQ.4.LO.4.K.16", "text": "All employment income is subject to mandatory deductions that include income tax, Canada Pension Plan (CPP) payments, and Employment Insurance (EI). In Alberta, income tax is paid to both the Alberta government and the Government of Canada."}], "thread": "tax", "note": "Grade 7 also states that Canada uses a progressive income tax system (OI.3.GQ.4.LO.4.K.17). Comparing tax systems is Grade 8."}, {"id": "7n", "g": 7, "oi": 3, "lo": 4, "label": "Argue whether more or less tax should be deducted from employment income", "items": [{"code": "OI.3.GQ.4.LO.4.SP.5", "text": "Argue whether more or less tax should be deducted from employment income."}, {"code": "OI.3.GQ.4.LO.4.K.19", "text": "Income taxes are used by various levels of government to pay for services such as education, healthcare, police, fire services, and national defence."}], "thread": "tax"}, {"id": "7o", "g": 7, "oi": 3, "lo": 5, "label": "Describe financial trade-offs: every dollar spent is a dollar not used for something else", "items": [{"code": "OI.3.GQ.5.LO.5.SP.1", "text": "Describe and provide examples of financial trade-offs."}, {"code": "OI.3.GQ.5.LO.5.K.2", "text": "Money management requires making decisions and trade-offs."}, {"code": "OI.3.GQ.5.LO.5.K.3", "text": "Trade-offs occur every time a dollar is used and mean that a choice is being made to use money for one purpose instead of another, e.g., buying a book vs. saving to spend later."}], "thread": "money"}, {"id": "7p", "g": 7, "oi": 3, "lo": 5, "label": "Build a budget to achieve a financial goal", "items": [{"code": "OI.3.GQ.5.LO.5.SP.7", "text": "Build a budget to achieve a financial goal."}, {"code": "OI.3.GQ.5.LO.5.SP.5", "text": "Analyze a budget to determine whether spending aligns with financial goals and priorities and modify the budget if needed."}, {"code": "OI.3.GQ.5.LO.5.K.9", "text": "A budget is a written plan that provides a summary of how income will be spent over a defined period of time."}, {"code": "OI.3.GQ.5.LO.5.K.14", "text": "Financial goals are specific targets to save or use employment income for a specific outcome. Common financial goals include set aside employment income to pay off debt, save for the future, invest, or make a major purchase (home, car)."}], "thread": "budget"}, {"id": "8a", "g": 8, "oi": 1, "lo": 1, "label": "Analyze how technological advancement affects the labour market", "items": [{"code": "OI.1.GQ.1.LO.1.SP.1", "text": "Analyze the positive and negative impacts of technological advancement on the labour market."}, {"code": "OI.1.GQ.1.LO.1.SP.2", "text": "Explore the various factors that cause changes to the labour market."}, {"code": "OI.1.GQ.1.LO.1.K.1", "text": "The labour market is dynamic and is influenced by economic cycles, technological advancement, and social change."}, {"code": "OI.1.GQ.1.LO.1.K.2", "text": "Technological advancement creates positive and negative impacts on the labour market."}], "thread": "labour"}, {"id": "8b", "g": 8, "oi": 1, "lo": 1, "label": "Career resilience: job security versus career security", "items": [{"code": "OI.1.GQ.1.LO.1.K.3", "text": "Career resilience is the ability of individuals to adapt to changes without losing employment."}, {"code": "OI.1.GQ.1.LO.1.K.4", "text": "Job security refers to staying in one role for an extended period of time, whereas career security is the ability to find new employment quickly as circumstances change."}, {"code": "OI.1.GQ.1.LO.1.K.5", "text": "Career resilience can be accomplished through continuous learning, networking, and agility."}], "thread": "careers"}, {"id": "8c", "g": 8, "oi": 1, "lo": 1, "label": "Human capital: the economic value of a person's education, knowledge, skills and experience", "items": [{"code": "OI.1.GQ.1.LO.1.K.9", "text": "Human capital is the economic value of an individual’s combined education, knowledge, skills, and experience."}], "thread": "humancap"}, {"id": "8d", "g": 8, "oi": 1, "lo": 1, "label": "Identify and rank transferable skills that improve employability", "items": [{"code": "OI.1.GQ.1.LO.1.SP.4", "text": "Identify and rank transferable skills that improve employability."}, {"code": "OI.1.GQ.1.LO.1.K.7", "text": "Transferable skills enhance employability."}, {"code": "OI.1.GQ.1.LO.1.K.8", "text": "Skills are valued and desired differently by the labour market."}], "thread": "skills"}, {"id": "8e", "g": 8, "oi": 1, "lo": 2, "label": "Plan high school courses that meet post-secondary admission requirements", "items": [{"code": "OI.1.GQ.2.LO.2.SP.1", "text": "Develop a high school course plan that meets the requirements of post-secondary institution and workforce pathways."}, {"code": "OI.1.GQ.2.LO.2.K.1", "text": "To begin a post-secondary pathway, individuals must satisfy admission requirements."}, {"code": "OI.1.GQ.2.LO.2.K.2", "text": "Admission requirements vary across fields of study and often include specific courses and grades."}, {"code": "OI.1.GQ.2.LO.2.K.4", "text": "Understanding post-secondary admission requirements can help individuals plan their high school education goals."}, {"code": "OI.1.GQ.2.LO.2.K.5", "text": "Early planning and course selection can help ensure a wide range of options are available to individuals."}], "thread": "postsec"}, {"id": "8f", "g": 8, "oi": 1, "lo": 2, "label": "Grants, bursaries and scholarships", "items": [{"code": "OI.1.GQ.2.LO.2.K.9", "text": "Grants, bursaries, and scholarships are forms of financial assistance available to help cover the costs of post-secondary pathways."}], "thread": "postsec-cost"}, {"id": "8g", "g": 8, "oi": 1, "lo": 2, "label": "Compare career aspirations with labour market information", "items": [{"code": "OI.1.GQ.2.LO.2.SP.4", "text": "Compare career aspirations with labour market information to understand achievable career goals."}, {"code": "OI.1.GQ.2.LO.2.SP.3", "text": "Analyze labour market information and explore which fields are in high demand."}, {"code": "OI.1.GQ.2.LO.2.K.6", "text": "Labour market information can be used to understand what careers are currently in demand and which may be more desired in the future."}, {"code": "OI.1.GQ.2.LO.2.K.7", "text": "Exploring labour market information can help individuals develop realistic career and post-secondary goals."}], "thread": "labour"}, {"id": "8h", "g": 8, "oi": 1, "lo": 2, "label": "Networking: build professional relationships and start career conversations", "items": [{"code": "OI.1.GQ.2.LO.2.SP.6", "text": "Identify opportunities to build professional relationships through school, community, and extracurricular experiences."}, {"code": "OI.1.GQ.2.LO.2.SP.7", "text": "Initiate conversations with individuals about careers and post-secondary pathways."}, {"code": "OI.1.GQ.2.LO.2.K.10", "text": "Networking is the idea of building professional relationships to exchange information, ideas, and support individual career or personal goals."}, {"code": "OI.1.GQ.2.LO.2.K.11", "text": "By building relationships through networking, individuals can learn more about careers, post-secondary pathways, and other opportunities."}], "thread": "jobsearch"}, {"id": "8i", "g": 8, "oi": 2, "lo": 3, "label": "Research equity of representation in various careers", "items": [{"code": "OI.2.GQ.3.LO.3.SP.1", "text": "Research equity of representation in various careers."}, {"code": "OI.2.GQ.3.LO.3.K.1", "text": "Equity of representation in careers can influence motivation to engage in experiences."}, {"code": "OI.2.GQ.3.LO.3.K.2", "text": "Representation in careers can be inequitable."}, {"code": "OI.2.GQ.3.LO.3.K.3", "text": "Equity of representation can influence personal vision of career possibilities."}], "thread": "experiences"}, {"id": "8j", "g": 8, "oi": 2, "lo": 3, "label": "Apply a growth mindset to developing employability skills", "items": [{"code": "OI.2.GQ.3.LO.3.SP.3", "text": "Apply a growth mindset to employability skill development."}, {"code": "OI.2.GQ.3.LO.3.K.5", "text": "A growth mindset can promote engagement in experiences and development of employability skills."}, {"code": "OI.2.GQ.3.LO.3.K.7", "text": "Employability skills are transferable skills that can contribute to success in any career, e.g.,\n- communication\n- collaboration\n- problem solving\n- critical thinking\n- technology use\n- time management"}], "thread": "skills"}, {"id": "8k", "g": 8, "oi": 3, "lo": 4, "label": "Calculate income tax using tax brackets", "items": [{"code": "OI.3.GQ.4.LO.4.SP.1", "text": "Calculate income tax, using different tax brackets, to determine total taxes contributed."}, {"code": "OI.3.GQ.4.LO.4.K.1", "text": "Employment income is taxed at different rates according to tax brackets."}, {"code": "OI.3.GQ.4.LO.4.K.2", "text": "Tax brackets allow different portions of income to be taxed at different rates."}], "thread": "tax"}, {"id": "8l", "g": 8, "oi": 3, "lo": 4, "label": "Compare progressive, regressive and flat tax systems", "items": [{"code": "OI.3.GQ.4.LO.4.SP.2", "text": "Compare progressive, regressive, and flat tax systems to explain how each distributes the tax burden across different income levels."}, {"code": "OI.3.GQ.4.LO.4.K.3", "text": "Progressive taxation involves taxing individuals with higher income at higher rates."}, {"code": "OI.3.GQ.4.LO.4.K.4", "text": "Regressive taxation places higher tax rates on low-income earners and lower tax rates on high-income earners."}, {"code": "OI.3.GQ.4.LO.4.K.5", "text": "Flat tax rates apply the same tax rate across all earners."}], "thread": "tax", "note": "Grade 7 introduces Canada's progressive system (OI.3.GQ.4.LO.4.K.17). Grade 8 compares it with regressive and flat systems."}, {"id": "8m", "g": 8, "oi": 3, "lo": 4, "label": "Compare job offers using total compensation, not just salary", "items": [{"code": "OI.3.GQ.4.LO.4.SP.3", "text": "Interpret and calculate total compensation such as combining salary with bonuses, incentives, and the estimated value of non-monetary benefits."}, {"code": "OI.3.GQ.4.LO.4.SP.4", "text": "Compare job offers and determine which option provides greater financial security and aligns with personal goals and aspirations."}, {"code": "OI.3.GQ.4.LO.4.K.6", "text": "Total compensation includes employment income but can also include one-time bonuses, allowances, and other non-monetary benefits such as insurance, vehicles, or vacation days."}, {"code": "OI.3.GQ.4.LO.4.K.7", "text": "Comparing job offers often requires evaluating total compensation in addition to employment income offered."}, {"code": "OI.3.GQ.4.LO.4.K.8", "text": "Job conditions, benefits, promotion opportunities, and working hours are examples of non-salary factors that individuals consider when evaluating job offers."}], "thread": "income"}, {"id": "8n", "g": 8, "oi": 3, "lo": 5, "label": "Separate fixed costs from variable costs in a personal budget", "items": [{"code": "OI.3.GQ.5.LO.5.SP.5", "text": "Create a personal budget and distinguish between fixed costs and variable costs."}, {"code": "OI.3.GQ.5.LO.5.SP.7", "text": "Adjust variable costs to achieve financial goals."}, {"code": "OI.3.GQ.5.LO.5.K.2", "text": "Fixed costs are predictable and remain consistent over time, while variable costs change depending on choices, needs, or circumstances."}, {"code": "OI.3.GQ.5.LO.5.K.3", "text": "Managing fixed and variable costs is essential to achieving financial security."}], "thread": "budget"}, {"id": "8o", "g": 8, "oi": 3, "lo": 5, "label": "Calculate simple and compound interest", "items": [{"code": "OI.3.GQ.5.LO.5.SP.2", "text": "Calculate simple interest."}, {"code": "OI.3.GQ.5.LO.5.SP.3", "text": "Calculate compound interest."}, {"code": "OI.3.GQ.5.LO.5.K.4", "text": "Interest is the cost of borrowing money or the reward for saving."}, {"code": "OI.3.GQ.5.LO.5.K.5", "text": "Compound interest is the interest earned on both the principal and the interest already earned."}, {"code": "OI.3.GQ.5.LO.5.K.6", "text": "Principal is the original amount of money borrowed or invested."}, {"code": "OI.3.GQ.5.LO.5.K.7", "text": "The rate is the percentage of interest charged or earned per year."}], "thread": "interest"}, {"id": "8p", "g": 8, "oi": 3, "lo": 5, "label": "Saving versus investing: risk and return", "items": [{"code": "OI.3.GQ.5.LO.5.SP.6", "text": "Compare and contrast the difference between saving and investing."}, {"code": "OI.3.GQ.5.LO.5.K.8", "text": "Saving is the practice of putting money aside for the future, while investing puts money aside into something that will grow over time."}, {"code": "OI.3.GQ.5.LO.5.K.9", "text": "Investments provide positive and negative returns, usually shown as percentages."}, {"code": "OI.3.GQ.5.LO.5.K.10", "text": "All investment has risk, which is the chance that an investment will lose value. Higher-risk investments may offer higher returns but also have a greater chance of loss."}, {"code": "OI.3.GQ.5.LO.5.K.11", "text": "Low-risk investments typically provide low return but keep principal safer."}], "thread": "money"}, {"id": "9a", "g": 9, "oi": 1, "lo": 1, "label": "Analyze how automation and globalization are reshaping industries", "items": [{"code": "OI.1.GQ.1.LO.1.SP.1", "text": "Analyze how automation and globalization are reshaping specific industries and the roles within them."}, {"code": "OI.1.GQ.1.LO.1.K.1", "text": "Automation is the use of technology to perform tasks previously done by humans, which can create labour disruption."}, {"code": "OI.1.GQ.1.LO.1.K.2", "text": "Labour markets connect across national borders, increasing competition and creating greater opportunities."}], "thread": "labour"}, {"id": "9b", "g": 9, "oi": 1, "lo": 1, "label": "Develop a resumé tailored to a specific opportunity", "items": [{"code": "OI.1.GQ.1.LO.1.SP.3", "text": "Develop a resumé that reflects personal human capital and is tailored to a specific opportunity."}, {"code": "OI.1.GQ.1.LO.1.K.5", "text": "Resumés communicate and highlight an individual’s human capital to secure job opportunities."}], "thread": "jobsearch"}, {"id": "9c", "g": 9, "oi": 1, "lo": 1, "label": "Construct a personal brand statement", "items": [{"code": "OI.1.GQ.1.LO.1.SP.4", "text": "Construct a personal brand statement that communicates skills, values, and career goals to a professional audience."}, {"code": "OI.1.GQ.1.LO.1.K.4", "text": "Personal branding is the deliberate presentation of an individual’s skills, values, and experiences to shape how others perceive them."}], "thread": "humancap"}, {"id": "9d", "g": 9, "oi": 1, "lo": 1, "label": "Practise interview skills", "items": [{"code": "OI.1.GQ.1.LO.1.SP.5", "text": "Practise interview skills, including preparation, responding to questions, and professional self-presentation."}, {"code": "OI.1.GQ.1.LO.1.K.7", "text": "Interviews are critical opportunities for individuals to communicate their human capital to employers."}], "thread": "jobsearch"}, {"id": "9e", "g": 9, "oi": 1, "lo": 2, "label": "Evaluate the role of student loans and their long-term repayment", "items": [{"code": "OI.1.GQ.2.LO.2.SP.2", "text": "Evaluate the role of student loans and financial aid in funding a post-secondary pathway, including the long-term repayment implications."}, {"code": "OI.1.GQ.2.LO.2.K.1", "text": "Student loans are a form of debt used to fund post-secondary education and must be repaid with interest after graduation."}], "thread": "postsec-cost"}, {"id": "9f", "g": 9, "oi": 1, "lo": 2, "label": "Compare the return on investment of different post-secondary pathways", "items": [{"code": "OI.1.GQ.2.LO.2.SP.1", "text": "Compare the expected return on investment of different post-secondary pathways, using labour market income data."}, {"code": "OI.1.GQ.2.LO.2.K.3", "text": "Return on investment in a post-secondary context compares the total cost of a pathway with the expected income and career opportunities it generates over time."}, {"code": "OI.1.GQ.2.LO.2.K.8", "text": "The financial return of a post-secondary pathway is influenced by graduation rates, employment rates in the field, and regional labour market conditions at the time of completion."}], "thread": "postsec-cost"}, {"id": "9g", "g": 9, "oi": 1, "lo": 2, "label": "How co-ops, internships and apprenticeships can reduce post-secondary costs", "items": [{"code": "OI.1.GQ.2.LO.2.SP.4", "text": "Assess how work-integrated learning opportunities could reduce costs and improve employment outcomes for a given pathway."}, {"code": "OI.1.GQ.2.LO.2.K.6", "text": "Work-integrated learning, including co-op programs, internships, and apprenticeships, can reduce the financial burden of post-secondary education while building human capital."}], "thread": "postsec"}, {"id": "9h", "g": 9, "oi": 2, "lo": 3, "label": "Cover letters, online profiles and job applications", "items": [{"code": "OI.2.GQ.3.LO.3.SP.8", "text": "Engage in actions that support the attainment of employment."}, {"code": "OI.2.GQ.3.LO.3.K.13", "text": "Attaining employment can be supported by actions, such as writing resumés and cover letters, completing online employment profiles and applications, and preparing for interviews."}], "thread": "jobsearch"}, {"id": "9i", "g": 9, "oi": 2, "lo": 3, "label": "Risks and benefits of digital identity when seeking employment", "items": [{"code": "OI.2.GQ.3.LO.3.SP.11", "text": "Explain risks and benefits related to digital identity in the attainment of employment."}, {"code": "OI.2.GQ.3.LO.3.SP.12", "text": "Reflect on personal digital identity."}, {"code": "OI.2.GQ.3.LO.3.K.16", "text": "Attaining employment can be influenced by digital identity, e.g., social media profiles."}], "thread": "jobsearch"}, {"id": "9j", "g": 9, "oi": 2, "lo": 3, "label": "Explore which careers require bilingualism in French and English", "items": [{"code": "OI.2.GQ.3.LO.3.SP.6", "text": "Explore which careers require bilingualism as an asset or prerequisite."}, {"code": "OI.2.GQ.3.LO.3.K.10", "text": "Some careers in Canada require proficiency in or knowledge of Canada’s two official languages, French and English."}], "thread": "experiences"}, {"id": "9k", "g": 9, "oi": 3, "lo": 4, "label": "Interpret a T4 slip", "items": [{"code": "OI.3.GQ.4.LO.4.SP.1", "text": "Interpret a T4 slip and identify all income and deduction entries."}, {"code": "OI.3.GQ.4.LO.4.K.1", "text": "A T4 slip is issued by employers and summarizes total employment income and deductions for the tax year."}], "thread": "tax"}, {"id": "9l", "g": 9, "oi": 3, "lo": 4, "label": "Calculate the effect of tax credits and deductions on tax owed", "items": [{"code": "OI.3.GQ.4.LO.4.SP.2", "text": "Calculate the effect of common tax credits and deductions on total tax owed."}, {"code": "OI.3.GQ.4.LO.4.K.2", "text": "A tax return is the annual filing submitted to the Canada Revenue Agency (CRA) that calculates the actual tax owed and determines whether a refund or additional payment is required."}, {"code": "OI.3.GQ.4.LO.4.K.3", "text": "Tax credits reduce the amount of tax owed and are available for a variety of circumstances, including tuition, charitable donations, and disability."}, {"code": "OI.3.GQ.4.LO.4.K.4", "text": "Tax deductions reduce the amount of income that is subject to tax, lowering the overall tax obligation."}], "thread": "tax"}, {"id": "9m", "g": 9, "oi": 3, "lo": 4, "label": "Compare RRSP and TFSA contributions", "items": [{"code": "OI.3.GQ.4.LO.4.SP.3", "text": "Compare the financial outcomes of RRSP and TFSA contributions, given different income and savings scenarios."}, {"code": "OI.3.GQ.4.LO.4.K.5", "text": "RRSP (Registered Retirement Savings Plan) contributions reduce taxable income and allow investments to grow tax-deferred until withdrawal."}, {"code": "OI.3.GQ.4.LO.4.K.6", "text": "TFSA (Tax-Free Savings Account) contributions are made with after-tax income, but growth and withdrawals are tax free."}], "thread": "money"}, {"id": "9n", "g": 9, "oi": 3, "lo": 4, "label": "How self-employment and gig income are taxed", "items": [{"code": "OI.3.GQ.4.LO.4.SP.4", "text": "Distinguish between employment income and self-employment income and explain the tax implications of each."}, {"code": "OI.3.GQ.4.LO.4.SP.5", "text": "Identify reportable income and explain the obligation to include all types in a tax return."}, {"code": "OI.3.GQ.4.LO.4.K.7", "text": "Self-employment income is taxed differently than employment income and requires individuals to remit their own CPP contributions and, in some cases, EI contributions."}, {"code": "OI.3.GQ.4.LO.4.K.8", "text": "All types of employment income, including freelance work, tips, and gig economy earnings, are taxable and must be reported on a tax return."}], "thread": "tax"}, {"id": "9o", "g": 9, "oi": 3, "lo": 5, "label": "Credit scores and the factors that affect them", "items": [{"code": "OI.3.GQ.5.LO.5.SP.3", "text": "Analyze how credit score factors influence borrowing access and interest rates, using real-world examples."}, {"code": "OI.3.GQ.5.LO.5.K.4", "text": "A credit score is a numerical rating that reflects an individual’s history of borrowing and repayment, and influences access to credit and the interest rates offered."}, {"code": "OI.3.GQ.5.LO.5.K.5", "text": "Factors that affect a credit score include payment history, credit utilization, length of credit history, types of credit, and new credit applications."}], "thread": "credit"}, {"id": "9p", "g": 9, "oi": 3, "lo": 5, "label": "Calculate the total cost of borrowing on a loan or credit card", "items": [{"code": "OI.3.GQ.5.LO.5.SP.1", "text": "Calculate the total cost of borrowing for a loan or credit card balance, using compound interest over a given period."}, {"code": "OI.3.GQ.5.LO.5.SP.2", "text": "Compare the total interest paid under different repayment scenarios, including minimum payments versus accelerated repayment."}, {"code": "OI.3.GQ.5.LO.5.K.6", "text": "Minimum payments on credit cards extend the repayment period significantly and result in substantially more interest paid over time."}], "thread": "interest"}, {"id": "9q", "g": 9, "oi": 3, "lo": 5, "label": "Apply a debt repayment strategy: avalanche or snowball", "items": [{"code": "OI.3.GQ.5.LO.5.SP.5", "text": "Apply a debt repayment strategy, avalanche or snowball, to a given debt scenario and calculate the outcome."}, {"code": "OI.3.GQ.5.LO.5.K.7", "text": "A debt repayment strategy, such as the avalanche method, highest interest first, or snowball method, smallest balance first, can reduce the total cost and duration of debt repayment."}], "thread": "credit"}], "threads": {"careers": "Careers and career planning", "skills": "Transferable and employability skills", "postsec": "Post-secondary pathways", "postsec-cost": "Paying for post-secondary", "labour": "The labour market", "humancap": "Human capital", "jobsearch": "Getting hired", "experiences": "Experiences and the world of work", "income": "Employment income", "tax": "Income tax", "money": "Saving, spending and growing money", "budget": "Budgeting", "interest": "Interest", "credit": "Credit and debt"}, "struct": {"7": {"oi": {"1": "Career Exploration: Purposeful exploration of past and present experiences can support a healthy work-life balance, contribute to self-knowledge, and assist in navigating transitions while pursuing career and educational goals.", "2": "Career Opportunities: Volunteer or work-integrated learning experiences can influence career development and promote world-of-work and community interactions.", "3": "Financial Literacy: Informed financial decision making contributes to the well-being of individuals, groups, and communities."}, "lo": {"1": {"gq": "What factors influence career development?", "lo": "Students explore the foundations of careers."}, "2": {"gq": "How can decisions be made about post-secondary programming?", "lo": "Students will learn that post-secondary pathways require balancing personal goals, financial considerations, and labour market demand."}, "3": {"gq": "How can experiences guide future choices?", "lo": "Students examine the influence of experiences on employment preferences."}, "4": {"gq": "How is employment income earned, taxed, and used?", "lo": "Students develop an understanding of employment and employment income."}, "5": {"gq": "How does managing money affect financial security?", "lo": "Students explain how spending, saving, and budgeting decisions affect financial security."}}}, "8": {"oi": {"1": "Career Exploration: Purposeful exploration of past and present experiences can support a healthy work-life balance, contribute to self-knowledge, and assist in navigating transitions while pursuing career and educational goals.", "2": "Career Opportunities: Volunteer or work-integrated learning experiences can influence career development and promote world-of-work and community interactions.", "3": "Financial Literacy: Informed financial decision making contributes to the well-being of individuals, groups, and communities."}, "lo": {"1": {"gq": "How does a changing labour market shape the skills, goals, and adaptability individuals need to achieve career success?", "lo": "Students analyze the dynamic nature of the labour market and develop an understanding of the knowledge, skills, and goals required to build career resilience."}, "2": {"gq": "How do post-secondary pathways, labour market realities, and financial considerations shape education and career planning?", "lo": "Students evaluate post-secondary pathways and labour market information to develop realistic, informed education and career goals."}, "3": {"gq": "How can one’s impression of career possibilities be influenced?", "lo": "Students investigate the role of experiences in the evaluation of career possibilities."}, "4": {"gq": "How do taxation and total compensation influence the true value of employment?", "lo": "Students analyze income taxation systems and total compensation to evaluate employment options and understand the role taxes play in supporting society."}, "5": {"gq": "How do the costs of daily life, the mechanics of interest, and the choice between saving and investing shape personal financial security?", "lo": "Students investigate strategies to achieve financial security by analyzing how costs, interest, and savings help manage personal finances."}}}, "9": {"oi": {"1": "Career Exploration: Purposeful exploration of past and present experiences can support a healthy work-life balance, contribute to self-knowledge, and assist in navigating transitions while pursuing career and educational goals.", "2": "Career Opportunities: Volunteer or work-integrated learning experiences can influence career development and promote world-of-work and community interactions.", "3": "Financial Literacy: Informed financial decision making contributes to the well-being of individuals, groups, and communities."}, "lo": {"1": {"gq": "How do individuals succeed in a changing labour market?", "lo": "Students recognize that success in career goals requires proactive measures."}, "2": {"gq": "How do individuals make informed decisions about post-secondary pathways?", "lo": "Students evaluate post-secondary options by weighing personal goals, financial costs, and labour market outcomes."}, "3": {"gq": "How might experiences inform career development?", "lo": "Students relate experiences and employment opportunities to career pathways."}, "4": {"gq": "How do income, taxation, and deductions shape an individual’s financial well-being from employment?", "lo": "Students recognize how registered accounts and government benefits shape personal finances."}, "5": {"gq": "How does the use of credit and debt shape an individual’s financial future?", "lo": "Students analyze how debt and credit function and evaluate strategies for borrowing responsibly to protect long-term financial security."}}}}}</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("cefl-data").textContent);
+  const TILES = D.tiles;
+  const T = Object.fromEntries(TILES.map(t => [t.id, t]));
+  const GRADES = [7, 8, 9];
+  const OIS = [1, 2, 3];
+  const OI_NAME = {};
+  OIS.forEach(o => { OI_NAME[o] = D.struct["7"].oi[String(o)].split(":")[0].trim(); });
+  const LOS_BY_OI = { 1: [1, 2], 2: [3], 3: [4, 5] };
+  const boxKey = (g, oi) => g + "-" + oi;
+  const correctKey = t => boxKey(t.g, t.oi);
+  const $ = id => document.getElementById(id);
+  const el = (tag, attrs = {}, kids = []) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const c of [].concat(kids)) if (c != null) n.append(c);
+    return n;
+  };
+  const boxName = key => { const [g, o] = key.split("-"); return "Grade " + g + " · " + OI_NAME[o]; };
+
+  // ---------- state ----------
+  const LS = "cefl-sort-v1";
+  let round = "r0";
+  let state = freshState();
+  let selected = null;
+  let showAnswers = false;
+  let view = "sort";
+  let threadFilter = null;
+  let isEditor = false;
+  let revealRoom = false;
+  let roomDocs = [];
+  let db = null, uid = null, canWrite = true;
+
+  function shuffled(ids) {
+    const a = ids.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function freshState() { return { placements: {}, checked: false, everChecked: false, order: shuffled(TILES.map(t => t.id)) }; }
+  function loadLocal() {
+    try {
+      const s = JSON.parse(localStorage.getItem(LS) || "null");
+      if (s && s.round === round && s.state && Array.isArray(s.state.order)) {
+        const known = new Set(TILES.map(t => t.id));
+        if (s.state.order.length === known.size && s.state.order.every(id => known.has(id))) state = s.state;
+      }
+    } catch (e) {}
+  }
+  function saveLocal() { try { localStorage.setItem(LS, JSON.stringify({ round, state })); } catch (e) {} }
+
+  const unplaced = () => state.order.filter(id => !state.placements[id]);
+  const result = id => {
+    const p = state.placements[id]; if (!p) return null;
+    const t = T[id]; if (p === correctKey(t)) return "ok";
+    return Number(p.split("-")[0]) === t.g ? "oi" : "grade";
+  };
+
+  // ---------- tiles ----------
+  function tileEl(id, opts = {}) {
+    const t = T[id];
+    const res = state.checked ? result(id) : null;
+    const cls = ["tile"];
+    if (res === "ok") cls.push("ok"); else if (res) cls.push("bad");
+    if (opts.extra) cls.push(opts.extra);
+    const kids = [];
+    if (res) kids.push(el("span", { class: "mark", "aria-hidden": "true", text: res === "ok" ? "✓" : "✗" }));
+    const body = el("span", {}, [t.label]);
+    if (opts.was) body.append(el("span", { class: "was", text: "You placed it in " + boxName(opts.was) }));
+    kids.push(body);
+    const label = t.label + (res ? (res === "ok" ? ". Correct." : ". Not where the curriculum puts it.") : "");
+    const b = el("button", {
+      class: cls.join(" "), "data-id": id, "aria-label": label,
+      "aria-pressed": !state.checked && !opts.static ? String(selected === id) : null,
+      draggable: !state.checked && !opts.static ? "true" : null,
+    }, kids);
+    b.addEventListener("click", e => { e.stopPropagation(); onTileClick(id); });
+    if (!state.checked && !opts.static) {
+      b.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; selected = id; });
+      b.addEventListener("dragend", () => { selected = null; renderSort(); });
+    }
+    return b;
+  }
+  function onTileClick(id) {
+    if (state.checked || view !== "sort") { openDetail(id); return; }
+    if (selected && selected !== id && state.placements[id]) { place(selected, state.placements[id]); return; }
+    selected = selected === id ? null : id;
+    renderSort();
+  }
+  function place(id, key) {
+    if (state.checked) return;
+    if (key) state.placements[id] = key; else delete state.placements[id];
+    selected = null;
+    persist(); renderSort();
+  }
+
+  // ---------- render: sort ----------
+  function renderSort() {
+    const left = unplaced();
+    const placedN = TILES.length - left.length;
+    $("count").innerHTML = "";
+    $("count").append(state.checked ? "Checked " : (left.length ? left.length + " tiles left to place " : "All tiles placed "),
+      el("small", { text: "· " + placedN + " of " + TILES.length + " placed" }));
+    $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
+    $("btnCheck").disabled = !state.checked && placedN === 0;
+
+    const tray = $("tray");
+    tray.innerHTML = "";
+    $("trayside").hidden = state.checked && (showAnswers || !left.length);
+    $("work").classList.toggle("answers", $("trayside").hidden);
+    if (left.length) left.forEach(id => tray.append(tileEl(id)));
+    else tray.append(el("span", { class: "empty", text: state.checked ? "Every tile was placed." : "The tray is empty. Press Check when you're ready." }));
+
+    const board = $("board");
+    board.innerHTML = "";
+    const inBox = {};
+    if (state.checked && showAnswers) {
+      TILES.forEach(t => { (inBox[correctKey(t)] ||= []).push(t.id); });
+    } else {
+      state.order.forEach(id => { const p = state.placements[id]; if (p) (inBox[p] ||= []).push(id); });
+    }
+    GRADES.forEach((g, i) => {
+      const col = el("div", { class: "col" }, [
+        el("div", { class: "colhead" }, [el("h2", { text: "Grade " + g }), el("span", { class: "yr", text: "Year " + (i + 1) + " of 3" })]),
+      ]);
+      OIS.forEach(oi => {
+        const key = boxKey(g, oi);
+        const isTarget = !!selected && !state.checked;
+        const box = el("div", {
+          class: "box" + (isTarget ? " target" : ""), "data-oi": oi, "data-key": key,
+          role: isTarget ? "button" : "region", tabindex: isTarget ? "0" : null,
+          "aria-label": "Grade " + g + ", " + OI_NAME[oi] + (isTarget ? ". Place the selected tile here." : ""),
+        }, [el("h3", { text: OI_NAME[oi] })]);
+        const slot = el("div", { class: "slot" });
+        const ids = inBox[key] || [];
+        ids.forEach(id => {
+          const was = state.checked && showAnswers && state.placements[id] && state.placements[id] !== key ? state.placements[id] : null;
+          const extra = state.checked && showAnswers && !state.placements[id] ? "dim" : null;
+          slot.append(tileEl(id, { was, extra }));
+        });
+        if (!ids.length) slot.append(el("span", { class: "hint", text: isTarget ? "Place here" : "" }));
+        box.append(slot);
+        if (isTarget) {
+          box.addEventListener("click", () => place(selected, key));
+          box.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(selected, key); } });
+        }
+        box.addEventListener("dragover", e => { if (!state.checked) { e.preventDefault(); box.classList.add("drop"); } });
+        box.addEventListener("dragleave", () => box.classList.remove("drop"));
+        box.addEventListener("drop", e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (T[id]) place(id, key); });
+        col.append(box);
+      });
+      board.append(col);
+    });
+
+    const sb = $("selbar");
+    if (selected && !state.checked) {
+      sb.hidden = false;
+      $("selWhat").textContent = "Selected: " + T[selected].label + ". Choose a box.";
+      $("selTray").hidden = !state.placements[selected];
+    } else sb.hidden = true;
+
+    renderScore();
+    renderTabs();
+  }
+
+  function renderScore() {
+    const s = $("score");
+    if (!state.checked) { s.hidden = true; return; }
+    let ok = 0, grade = 0, oi = 0, none = 0;
+    TILES.forEach(t => { const r = result(t.id); if (r === "ok") ok++; else if (r === "grade") grade++; else if (r === "oi") oi++; else none++; });
+    s.hidden = false; s.className = "score"; s.innerHTML = "";
+    s.append(
+      el("div", {}, [el("div", { class: "big", text: ok + " of " + TILES.length }), el("span", { text: "in the right grade and organizing idea" })]),
+      el("div", {}, [el("div", { class: "big", text: String(grade) }), el("span", { text: "in the wrong grade" })]),
+      el("div", {}, [el("div", { class: "big", text: String(oi) }), el("span", { text: "right grade, wrong organizing idea" })]),
+    );
+    if (none) s.append(el("div", {}, [el("div", { class: "big", text: String(none) }), el("span", { text: "not placed" })]));
+    const cb = el("input", { type: "checkbox", id: "showAns" });
+    cb.checked = showAnswers;
+    cb.addEventListener("change", () => { showAnswers = cb.checked; renderSort(); });
+    s.append(el("label", { for: "showAns" }, [cb, "Show where every tile belongs"]));
+    s.append(el("span", { text: "Tap any tile to read the curriculum statements behind it." }));
+  }
+
+  // ---------- detail ----------
+  function openDetail(id) {
+    const t = T[id];
+    const lo = D.struct[String(t.g)].lo[String(t.lo)];
+    const body = $("detailBody");
+    body.innerHTML = "";
+    const close = el("button", { class: "btn quiet", text: "Close", onclick: () => $("detail").close() });
+    body.append(el("div", { class: "head" }, [el("h2", { text: t.label }), close]));
+    body.append(el("div", { class: "chips" }, [
+      el("span", { class: "chip", text: "Grade " + t.g }),
+      el("span", { class: "chip oi", "data-oi": t.oi, text: OI_NAME[t.oi] }),
+      el("span", { class: "chip mono", text: "OI." + t.oi + ".GQ." + t.lo + ".LO." + t.lo }),
+    ]));
+    const p = state.placements[id];
+    if (state.checked && p && p !== correctKey(t)) body.append(el("div", { class: "note", text: "You placed it in " + boxName(p) + "." }));
+    body.append(el("div", {}, [el("div", { class: "lbl", text: "Guiding question" }), el("div", { text: lo.gq })]));
+    body.append(el("div", {}, [el("div", { class: "lbl", text: "Learning outcome" }), el("div", { text: lo.lo })]));
+    const list = el("ul", { class: "stmts" });
+    t.items.forEach(it => list.append(el("li", {}, [it.text, el("span", { class: "mono", text: it.code })])));
+    body.append(el("div", {}, [el("div", { class: "lbl", text: "Curriculum statements (exact wording)" }), list]));
+    if (t.note) body.append(el("div", { class: "note" }, [el("b", { text: "Note. " }), t.note]));
+    if (t.thread) {
+      const same = TILES.filter(x => x.thread === t.thread).sort((a, b) => a.g - b.g || a.id.localeCompare(b.id));
+      const box = el("div", { class: "strand" }, [el("div", { class: "lbl", text: "Same strand across the three years: " + D.threads[t.thread] })]);
+      same.forEach(x => box.append(el("button", { "aria-current": x.id === id ? "true" : null, onclick: () => openDetail(x.id) }, [el("span", { class: "g", text: "Gr " + x.g }), el("span", { text: x.label })])));
+      body.append(box);
+    }
+    const dlg = $("detail");
+    if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } }
+    close.focus();
+  }
+  $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
+
+  // ---------- render: progression ----------
+  const PRESENTER = /^#presenter$/i.test(location.hash);
+  function unlocked() { return state.everChecked || isEditor || PRESENTER; }
+  function lockedPanel(what) {
+    return el("div", { class: "locked" }, [el("h2", { text: what + " opens after you check your sort" }), el("p", { text: "Sort the tiles first, then press Check. This keeps the answers hidden until you've made your own predictions." })]);
+  }
+  function renderProg() {
+    const v = $("view-prog"); v.innerHTML = "";
+    if (!unlocked()) { v.append(lockedPanel("The progression view")); return; }
+    v.append(el("p", { class: "lede", style: "margin-top:16px", text: "Read across a row to follow one guiding question through Grades 7, 8 and 9. Pick a strand to highlight it." }));
+    const f = el("div", { class: "prog-filter" }, [el("span", { class: "lbl", text: "Strand" })]);
+    const mk = (key, name) => el("button", { "aria-pressed": String(threadFilter === key), onclick: () => { threadFilter = threadFilter === key ? null : key; renderProg(); } }, [name]);
+    f.append(mk(null, "All"));
+    Object.entries(D.threads).forEach(([k, n]) => f.append(mk(k, n)));
+    v.append(f);
+    const grid = el("div", { class: "prog" });
+    grid.append(el("div", { class: "h", text: "" }), ...GRADES.map(g => el("div", { class: "h", text: "Grade " + g })));
+    OIS.forEach(oi => {
+      grid.append(el("div", { class: "oiband", "data-oi": oi }, [el("b", { text: OI_NAME[oi] }), " · same organizing idea in all three grades"]));
+      LOS_BY_OI[oi].forEach(lo => {
+        grid.append(el("div", { class: "rowlab", text: "GQ " + lo + " · LO " + lo }));
+        GRADES.forEach(g => {
+          const s = D.struct[String(g)].lo[String(lo)];
+          const cell = el("div", { class: "cell" }, [el("span", { class: "gtag", text: "Grade " + g }), el("div", { class: "gq", text: s.gq }), el("div", { class: "lo", text: s.lo })]);
+          TILES.filter(t => t.g === g && t.lo === lo).forEach(t => {
+            const extra = threadFilter ? (t.thread === threadFilter ? "hit" : "dim") : null;
+            cell.append(tileEl(t.id, { static: true, extra }));
+          });
+          grid.append(cell);
+        });
+      });
+    });
+    v.append(grid);
+  }
+
+  // ---------- render: room ----------
+  function currentDocs() { return roomDocs.filter(d => d.round === round && d.placements && Object.keys(d.placements).length); }
+  function renderRoom() {
+    const v = $("view-room"); v.innerHTML = "";
+    if (!db) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available here" }), el("p", { text: "Open this page signed in to claude.ai to share your sort with the room. Your own sort still works." })])); return; }
+    if (!unlocked()) { v.append(lockedPanel("Room results")); return; }
+    const docs = currentDocs();
+    const checkedN = docs.filter(d => d.checked).length;
+    let tot = 0, cnt = 0;
+    docs.forEach(d => { TILES.forEach(t => { if (d.placements[t.id]) { cnt++; if (d.placements[t.id] === correctKey(t)) tot++; } }); });
+    v.append(el("div", { class: "room-sum" }, [
+      el("div", { class: "stat" }, [el("div", { class: "n", text: String(docs.length) }), el("div", { class: "k", text: "people sorting this session" })]),
+      el("div", { class: "stat" }, [el("div", { class: "n", text: String(checkedN) }), el("div", { class: "k", text: "have pressed Check" })]),
+      el("div", { class: "stat" }, [el("div", { class: "n", text: cnt ? Math.round(100 * tot / cnt) + "%" : "–" }), el("div", { class: "k", text: "of placed tiles in the right box" })]),
+    ]));
+    const ctl = el("div", { class: "room-ctl" });
+    const cb = el("input", { type: "checkbox", id: "revealRoom" });
+    cb.checked = revealRoom;
+    cb.addEventListener("change", () => { revealRoom = cb.checked; renderRoom(); });
+    ctl.append(el("label", { for: "revealRoom" }, [cb, "Show the curriculum grade"]));
+    if (isEditor) {
+      const conf = el("div", { class: "confirm", hidden: true }, [
+        el("span", { text: "Start a new session? Everyone's boards clear and the room count starts at zero." }),
+        el("button", { class: "btn", text: "Yes, start a new session", onclick: newSession }),
+        el("button", { class: "btn quiet", text: "Cancel", onclick: () => { conf.hidden = true; } }),
+      ]);
+      ctl.append(el("button", { class: "btn", text: "Start a new session", onclick: () => { conf.hidden = false; } }), conf);
+    }
+    v.append(ctl);
+    if (!docs.length) { v.append(el("div", { class: "locked" }, [el("h2", { text: "No sorts yet this session" }), el("p", { text: "Results appear here as people place tiles." })])); return; }
+    const rows = TILES.map(t => {
+      const c = { 7: 0, 8: 0, 9: 0 }; let placed = 0, exact = 0, wrongOi = 0;
+      docs.forEach(d => { const p = d.placements[t.id]; if (!p) return; placed++; const g = Number(p.split("-")[0]); c[g]++; if (p === correctKey(t)) exact++; else if (g === t.g) wrongOi++; });
+      return { t, c, placed, exact, wrongOi, pct: placed ? exact / placed : 1 };
+    }).sort((a, b) => a.pct - b.pct || b.placed - a.placed);
+    const tb = el("tbody");
+    rows.forEach(r => {
+      const dist = el("div", { class: "dist" });
+      GRADES.forEach(g => {
+        const right = revealRoom && g === r.t.g;
+        dist.append(el("div", { class: "seg" + (right ? " right" : "") }, [
+          el("span", { text: "Gr " + g + " · " + r.c[g] + (right ? " · curriculum" : "") }),
+          el("div", { class: "bar" }, [el("i", { style: "width:" + (r.placed ? Math.round(100 * r.c[g] / r.placed) : 0) + "%" })]),
+        ]));
+      });
+      tb.append(el("tr", {}, [
+        el("td", {}, [el("button", { class: "rlabel", text: r.t.label, onclick: () => openDetail(r.t.id) })]),
+        el("td", {}, [dist]),
+        el("td", { class: "num", text: revealRoom ? String(r.wrongOi) : "–" }),
+        el("td", { class: "num", text: revealRoom ? (r.placed ? Math.round(100 * r.pct) + "%" : "–") : "–" }),
+      ]));
+    });
+    v.append(el("div", { class: "rtable" }, [el("table", {}, [
+      el("thead", {}, [el("tr", {}, [el("th", { text: "Tile" }), el("th", { text: "Where the room placed it" }), el("th", { class: "num", text: "Right grade, wrong OI" }), el("th", { class: "num", text: "Fully correct" })])]),
+      tb,
+    ])]));
+    if (!revealRoom) v.append(el("p", { class: "status", text: "Turn on “Show the curriculum grade” to see which placements match the curriculum. Tiles are listed with the most-misplaced first once it's on." }));
+  }
+
+  // ---------- tabs ----------
+  function renderTabs() {
+    $("tab-room").hidden = !db;
+    if (!db && view === "room") view = "sort";
+    document.querySelectorAll("nav.tabs button").forEach(b => {
+      b.setAttribute("aria-selected", String(b.dataset.view === view));
+      const lockable = b.dataset.view !== "sort";
+      const old = b.querySelector(".lock"); if (old) old.remove();
+      if (lockable && !unlocked()) b.append(el("span", { class: "lock", "aria-label": "(locked until you check)", text: "· after Check" }));
+    });
+    $("view-sort").hidden = view !== "sort";
+    $("view-prog").hidden = view !== "prog";
+    $("view-room").hidden = view !== "room";
+  }
+  document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => {
+    view = b.dataset.view; selected = null;
+    if (view === "prog") renderProg();
+    if (view === "room") renderRoom();
+    renderSort();
+  }));
+
+  // ---------- controls ----------
+  $("btnCheck").addEventListener("click", () => {
+    if (state.checked) { state.checked = false; showAnswers = false; persist(); renderSort(); return; }
+    const left = unplaced().length;
+    if (left) { $("checkConfirmText").textContent = left + " tiles are still in the tray. Unplaced tiles count as not placed."; $("checkConfirm").hidden = false; return; }
+    doCheck();
+  });
+  function doCheck() { $("checkConfirm").hidden = true; state.checked = true; state.everChecked = true; selected = null; persist(); renderSort(); }
+  $("checkYes").addEventListener("click", doCheck);
+  $("checkNo").addEventListener("click", () => { $("checkConfirm").hidden = true; });
+  $("btnReset").addEventListener("click", () => { $("resetConfirm").hidden = false; });
+  $("resetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; });
+  $("resetYes").addEventListener("click", () => { $("resetConfirm").hidden = true; const ever = state.everChecked; state = freshState(); state.everChecked = ever; selected = null; showAnswers = false; persist(); renderSort(); });
+  $("selCancel").addEventListener("click", () => { selected = null; renderSort(); });
+  $("selTray").addEventListener("click", () => { if (selected) place(selected, null); });
+  const tray = $("tray");
+  tray.addEventListener("click", () => { if (selected && state.placements[selected]) place(selected, null); });
+  tray.addEventListener("dragover", e => { if (!state.checked) { e.preventDefault(); tray.classList.add("drop"); } });
+  tray.addEventListener("dragleave", () => tray.classList.remove("drop"));
+  tray.addEventListener("drop", e => { e.preventDefault(); tray.classList.remove("drop"); const id = e.dataTransfer.getData("text/plain"); if (T[id]) place(id, null); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && selected) { selected = null; renderSort(); } });
+
+  let toastTimer;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500); }
+
+  // ---------- persistence ----------
+  let writeTimer = null, writing = false, dirty = false;
+  function persist() {
+    saveLocal();
+    if (!db || !uid || !canWrite) return;
+    dirty = true;
+    clearTimeout(writeTimer);
+    writeTimer = setTimeout(flush, 700);
+  }
+  async function flush() {
+    if (writing || !dirty) return;
+    writing = true; dirty = false;
+    try {
+      await db.doc("sorts/" + uid).set({ round, placements: { ...state.placements }, checked: !!state.checked, at: new Date().toISOString() });
+      $("saveStatus").textContent = "Shared with the room";
+    } catch (e) {
+      if (e && (e.code === "invalid_argument" || e.code === "not_granted")) { canWrite = false; $("saveStatus").textContent = "Saved on this device only"; }
+      else { dirty = true; setTimeout(flush, 1500 + Math.random() * 1000); }
+    } finally { writing = false; if (dirty) { clearTimeout(writeTimer); writeTimer = setTimeout(flush, 700); } }
+  }
+  async function newSession() {
+    const r = "r" + Date.now().toString(36);
+    try { await db.doc("control/session").set({ round: r, startedAt: new Date().toISOString() }); toast("New session started"); }
+    catch (e) { toast("Only editors can start a new session"); }
+  }
+  function applyRound(r) {
+    if (r === round) return;
+    const had = Object.keys(state.placements).length > 0;
+    round = r;
+    loadLocal();
+    if (!localMatches()) { state = freshState(); if (had) toast("A new session started. Your board was cleared."); }
+    selected = null; showAnswers = false;
+    persist(); renderSort();
+    if (view === "room") renderRoom();
+    if (view === "prog") renderProg();
+  }
+  function localMatches() { try { const s = JSON.parse(localStorage.getItem(LS) || "null"); return !!(s && s.round === round); } catch (e) { return false; } }
+
+  // ---------- boot ----------
+  loadLocal();
+  renderSort();
+
+  (async () => {
+    if (!window.claude || !window.claude.use) return;
+    const [dbNs, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (user) {
+      try { isEditor = await user.canEdit(); } catch (e) {}
+      try { uid = await user.id(); } catch (e) {}
+      try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
+    }
+    renderSort();
+    if (!dbNs) return;
+    db = dbNs;
+    if (!uid || !canWrite) $("saveStatus").textContent = "Saved on this device only";
+    let first = true;
+    db.doc("control/session").onSnapshot(snap => {
+      const r = snap.exists && snap.data() && typeof snap.data().round === "string" ? snap.data().round : "r0";
+      if (first) {
+        first = false;
+        if (r !== round) { round = r; state = freshState(); loadLocal(); }
+        if (uid) {
+          db.doc("sorts/" + uid).get().then(s => {
+            const d = s.exists ? s.data() : null;
+            if (d && d.round === round && d.placements && !Object.keys(state.placements).length) {
+              const pl = {}; Object.entries(d.placements).forEach(([k, v]) => { if (T[k] && /^[789]-[123]$/.test(v)) pl[k] = v; });
+              state.placements = pl; state.checked = !!d.checked; if (d.checked) state.everChecked = true; saveLocal();
+            }
+            renderSort();
+          }).catch(() => {});
+        }
+        renderSort();
+      } else applyRound(r);
+    }, () => {});
+    db.collection("sorts").onSnapshot(snap => {
+      roomDocs = snap.docs.map(d => d.data() || {}).filter(d => d && typeof d.placements === "object");
+      if (view === "room") renderRoom();
+    }, () => {});
+  })();
+})();
+</script>
+
+</body>
+</html>
