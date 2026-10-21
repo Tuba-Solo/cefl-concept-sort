@@ -78,6 +78,7 @@ nav.tabs button .lock { font-size: 0.75rem; margin-left: 4px; opacity: 0.7; }
 .btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn.quiet { background: transparent; }
 .status { font-size: 0.85rem; color: var(--muted); }
 
@@ -221,7 +222,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     <nav class="tabs" role="tablist" aria-label="Views">
       <button role="tab" id="tab-sort" aria-selected="true" data-view="sort">Sort</button>
       <button role="tab" id="tab-prog" aria-selected="false" data-view="prog">Progression</button>
-      <button role="tab" id="tab-room" aria-selected="false" data-view="room" hidden>Room</button>
+      <button role="tab" id="tab-room" aria-selected="false" data-view="room">Room</button>
     </nav>
   </header>
 
@@ -236,7 +237,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       <div class="count" id="count"></div>
       <div class="btns">
         <span class="status" id="saveStatus" aria-live="polite"></span>
-        <button class="btn" id="btnPdf" hidden>Download PDF</button>
+        <button class="btn" id="btnPdf" disabled>Download PDF</button>
         <button class="btn quiet" id="btnReset">Start over</button>
         <button class="btn primary" id="btnCheck">Check</button>
       </div>
@@ -386,7 +387,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       el("small", { text: "· " + placedN + " of " + TILES.length + " placed" }));
     $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
     $("btnCheck").disabled = !state.checked && placedN === 0;
-    $("btnPdf").hidden = !state.checked;
+    if ($("btnPdf").textContent.indexOf("Preparing") < 0) { $("btnPdf").disabled = !state.checked; $("btnPdf").title = state.checked ? "" : "Press Check first"; $("btnPdf").textContent = state.checked ? "Download PDF" : "Download PDF · after Check"; }
 
     const tray = $("tray");
     tray.innerHTML = "";
@@ -538,15 +539,15 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   function currentDocs() { return roomDocs.filter(d => d.placements && Object.keys(d.placements).length); }
   function renderRoom() {
     const v = $("view-room"); v.innerHTML = "";
-    if (!live) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available right now" }), el("p", { text: "This browser couldn't connect to the room. Your own sort is still saved on this device." })])); return; }
+    if (!live) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available right now" }), el("p", { text: "This browser couldn't connect to the room. Your own sort is still saved on this device." }), el("p", { class: "status", text: "Reason: " + (lastError || "still connecting") })])); return; }
     if (!unlocked()) { v.append(lockedPanel("Room results")); return; }
     const docs = currentDocs();
     const checkedN = docs.filter(d => d.checked).length;
     let tot = 0, cnt = 0;
     docs.forEach(d => { TILES.forEach(t => { if (d.placements[t.id]) { cnt++; if (d.placements[t.id] === correctKey(t)) tot++; } }); });
     v.append(el("div", { class: "room-sum" }, [
-      el("div", { class: "stat" }, [el("div", { class: "n", text: String(docs.length) }), el("div", { class: "k", text: "people sorting this session" })]),
-      el("div", { class: "stat" }, [el("div", { class: "n", text: String(checkedN) }), el("div", { class: "k", text: "have pressed Check" })]),
+      el("div", { class: "stat" }, [el("div", { class: "n", text: String(docs.length) }), el("div", { class: "k", text: (docs.length === 1 ? "person" : "people") + " sorting this session" })]),
+      el("div", { class: "stat" }, [el("div", { class: "n", text: String(checkedN) }), el("div", { class: "k", text: (checkedN === 1 ? "has" : "have") + " pressed Check" })]),
       el("div", { class: "stat" }, [el("div", { class: "n", text: cnt ? Math.round(100 * tot / cnt) + "%" : "–" }), el("div", { class: "k", text: "of placed tiles in the right box" })]),
     ]));
     const ctl = el("div", { class: "room-ctl" });
@@ -588,8 +589,6 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- tabs ----------
   function renderTabs() {
-    $("tab-room").hidden = !live;
-    if (!live && view === "room") view = "sort";
     document.querySelectorAll("nav.tabs button").forEach(b => {
       b.setAttribute("aria-selected", String(b.dataset.view === view));
       const lockable = b.dataset.view !== "sort";
@@ -644,6 +643,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   };
   const FB_VER = "10.12.2";
   const setStatus = t => { $("saveStatus").textContent = t; };
+  let lastError = "";
+  const why = e => (e && (e.code || e.message || e.name)) ? String(e.code || e.message || e.name).slice(0, 90) : "unknown";
 
   let writeTimer = null, writing = false, dirty = false;
   function persist() {
@@ -661,7 +662,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       setStatus("Saved and shared with the room");
     } catch (e) {
       console.warn("Save failed", e);
-      if (e && e.code === "permission-denied") { canWrite = false; setStatus("Saved on this device only"); }
+      if (e && e.code === "permission-denied") { canWrite = false; lastError = "save refused (" + why(e) + ")"; setStatus("Saved on this device only · " + lastError); }
       else { dirty = true; setTimeout(flush, 2000 + Math.random() * 1500); }
     } finally { writing = false; if (dirty) { clearTimeout(writeTimer); writeTimer = setTimeout(flush, 700); } }
   }
@@ -706,7 +707,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   // ---------- boot ----------
   loadLocal();
   renderSort();
-  connect().catch(e => { console.warn("Room connection failed", e); live = false; setStatus("Saved on this device only"); renderSort(); });
+  connect().catch(e => { console.warn("Room connection failed", e); live = false; lastError = "couldn't connect (" + why(e) + ")"; setStatus("Saved on this device only · " + lastError); renderSort(); });
 
   // ---------- PDF export: card fronts in their columns, then card backs ----------
   const JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
