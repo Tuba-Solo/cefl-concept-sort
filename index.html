@@ -236,6 +236,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       <div class="count" id="count"></div>
       <div class="btns">
         <span class="status" id="saveStatus" aria-live="polite"></span>
+        <button class="btn" id="btnPdf" hidden>Download PDF</button>
         <button class="btn quiet" id="btnReset">Start over</button>
         <button class="btn primary" id="btnCheck">Check</button>
       </div>
@@ -303,16 +304,16 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- state ----------
   const LS = "cefl-sort-v1";
-  let round = "r0";
+  const SESSION = (new URLSearchParams(location.search).get("session") || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 40) || "cefl-pl";
+  let round = SESSION;
   let state = freshState();
   let selected = null;
   let showAnswers = false;
   let view = "sort";
   let threadFilter = null;
-  let isEditor = false;
   let revealRoom = false;
   let roomDocs = [];
-  let db = null, uid = null, canWrite = true;
+  let live = false, fb = null, uid = null, canWrite = true;
 
   function shuffled(ids) {
     const a = ids.slice();
@@ -385,6 +386,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       el("small", { text: "· " + placedN + " of " + TILES.length + " placed" }));
     $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
     $("btnCheck").disabled = !state.checked && placedN === 0;
+    $("btnPdf").hidden = !state.checked;
 
     const tray = $("tray");
     tray.innerHTML = "";
@@ -499,7 +501,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- render: progression ----------
   const PRESENTER = /^#presenter$/i.test(location.hash);
-  function unlocked() { return state.everChecked || isEditor || PRESENTER; }
+  function unlocked() { return state.everChecked || PRESENTER; }
   function lockedPanel(what) {
     return el("div", { class: "locked" }, [el("h2", { text: what + " opens after you check your sort" }), el("p", { text: "Sort the tiles first, then press Check. This keeps the answers hidden until you've made your own predictions." })]);
   }
@@ -533,10 +535,10 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   }
 
   // ---------- render: room ----------
-  function currentDocs() { return roomDocs.filter(d => d.round === round && d.placements && Object.keys(d.placements).length); }
+  function currentDocs() { return roomDocs.filter(d => d.placements && Object.keys(d.placements).length); }
   function renderRoom() {
     const v = $("view-room"); v.innerHTML = "";
-    if (!db) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available here" }), el("p", { text: "Open this page signed in to claude.ai to share your sort with the room. Your own sort still works." })])); return; }
+    if (!live) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available right now" }), el("p", { text: "This browser couldn't connect to the room. Your own sort is still saved on this device." })])); return; }
     if (!unlocked()) { v.append(lockedPanel("Room results")); return; }
     const docs = currentDocs();
     const checkedN = docs.filter(d => d.checked).length;
@@ -552,14 +554,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     cb.checked = revealRoom;
     cb.addEventListener("change", () => { revealRoom = cb.checked; renderRoom(); });
     ctl.append(el("label", { for: "revealRoom" }, [cb, "Show the curriculum grade"]));
-    if (isEditor) {
-      const conf = el("div", { class: "confirm", hidden: true }, [
-        el("span", { text: "Start a new session? Everyone's boards clear and the room count starts at zero." }),
-        el("button", { class: "btn", text: "Yes, start a new session", onclick: newSession }),
-        el("button", { class: "btn quiet", text: "Cancel", onclick: () => { conf.hidden = true; } }),
-      ]);
-      ctl.append(el("button", { class: "btn", text: "Start a new session", onclick: () => { conf.hidden = false; } }), conf);
-    }
+    ctl.append(el("span", { class: "status", text: "Session: " + SESSION }));
     v.append(ctl);
     if (!docs.length) { v.append(el("div", { class: "locked" }, [el("h2", { text: "No sorts yet this session" }), el("p", { text: "Results appear here as people place tiles." })])); return; }
     const rows = TILES.map(t => {
@@ -593,8 +588,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- tabs ----------
   function renderTabs() {
-    $("tab-room").hidden = !db;
-    if (!db && view === "room") view = "sort";
+    $("tab-room").hidden = !live;
+    if (!live && view === "room") view = "sort";
     document.querySelectorAll("nav.tabs button").forEach(b => {
       b.setAttribute("aria-selected", String(b.dataset.view === view));
       const lockable = b.dataset.view !== "sort";
@@ -637,11 +632,23 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   let toastTimer;
   function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500); }
 
-  // ---------- persistence ----------
+  // ---------- persistence: this browser + Firebase (eips-planner-dev, ceflSortSessions) ----------
+  // The web config below is public by design. Access is controlled by the Firestore rules block.
+  const FB_CONFIG = {
+    apiKey: "AIzaSyAgKPb0soFXspLJWb5WvKXBFf91Xf3JmU8",
+    authDomain: "eips-planner-dev.firebaseapp.com",
+    projectId: "eips-planner-dev",
+    storageBucket: "eips-planner-dev.firebasestorage.app",
+    messagingSenderId: "864110241026",
+    appId: "1:864110241026:web:865ee9c3ca571b9bd0ce1b"
+  };
+  const FB_VER = "10.12.2";
+  const setStatus = t => { $("saveStatus").textContent = t; };
+
   let writeTimer = null, writing = false, dirty = false;
   function persist() {
     saveLocal();
-    if (!db || !uid || !canWrite) return;
+    if (!live || !canWrite) return;
     dirty = true;
     clearTimeout(writeTimer);
     writeTimer = setTimeout(flush, 700);
@@ -650,71 +657,258 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     if (writing || !dirty) return;
     writing = true; dirty = false;
     try {
-      await db.doc("sorts/" + uid).set({ round, placements: { ...state.placements }, checked: !!state.checked, at: new Date().toISOString() });
-      $("saveStatus").textContent = "Shared with the room";
+      await fb.fs.setDoc(fb.mine, { placements: { ...state.placements }, checked: !!state.checked, updatedAt: fb.fs.serverTimestamp() });
+      setStatus("Saved and shared with the room");
     } catch (e) {
-      if (e && (e.code === "invalid_argument" || e.code === "not_granted")) { canWrite = false; $("saveStatus").textContent = "Saved on this device only"; }
-      else { dirty = true; setTimeout(flush, 1500 + Math.random() * 1000); }
+      console.warn("Save failed", e);
+      if (e && e.code === "permission-denied") { canWrite = false; setStatus("Saved on this device only"); }
+      else { dirty = true; setTimeout(flush, 2000 + Math.random() * 1500); }
     } finally { writing = false; if (dirty) { clearTimeout(writeTimer); writeTimer = setTimeout(flush, 700); } }
   }
-  async function newSession() {
-    const r = "r" + Date.now().toString(36);
-    try { await db.doc("control/session").set({ round: r, startedAt: new Date().toISOString() }); toast("New session started"); }
-    catch (e) { toast("Only editors can start a new session"); }
+
+  async function connect() {
+    setStatus("Connecting to the room…");
+    const base = "https://www.gstatic.com/firebasejs/" + FB_VER + "/";
+    const [appM, authM, fs] = await Promise.all([
+      import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js"),
+    ]);
+    const app = appM.initializeApp(FB_CONFIG);
+    const auth = authM.getAuth(app);
+    if (auth.authStateReady) await auth.authStateReady();
+    const user = auth.currentUser || (await authM.signInAnonymously(auth)).user;
+    uid = user.uid;
+    const db = fs.getFirestore(app);
+    const col = fs.collection(db, "ceflSortSessions", SESSION, "sorts");
+    fb = { fs, db, col, mine: fs.doc(col, uid) };
+
+    // Restore this browser's saved sort if the board here is empty (e.g. cleared site data on the same login).
+    try {
+      const snap = await fs.getDoc(fb.mine);
+      const d = snap.exists() ? snap.data() : null;
+      if (d && d.placements && !Object.keys(state.placements).length) {
+        const pl = {};
+        Object.entries(d.placements).forEach(([k, v]) => { if (T[k] && /^[789]-[123]$/.test(v)) pl[k] = v; });
+        state.placements = pl; state.checked = !!d.checked; if (d.checked) state.everChecked = true;
+        saveLocal();
+      }
+    } catch (e) { console.warn("Restore failed", e); }
+
+    live = true;
+    setStatus("Saved and shared with the room");
+    if (Object.keys(state.placements).length) { dirty = true; flush(); }
+    renderSort();
+    fs.onSnapshot(col, qs => {
+      roomDocs = qs.docs.map(d => d.data() || {}).filter(d => d && typeof d.placements === "object");
+      if (view === "room") renderRoom();
+    }, e => console.warn("Room feed stopped", e));
   }
-  function applyRound(r) {
-    if (r === round) return;
-    const had = Object.keys(state.placements).length > 0;
-    round = r;
-    loadLocal();
-    if (!localMatches()) { state = freshState(); if (had) toast("A new session started. Your board was cleared."); }
-    selected = null; showAnswers = false;
-    persist(); renderSort();
-    if (view === "room") renderRoom();
-    if (view === "prog") renderProg();
-  }
-  function localMatches() { try { const s = JSON.parse(localStorage.getItem(LS) || "null"); return !!(s && s.round === round); } catch (e) { return false; } }
 
   // ---------- boot ----------
   loadLocal();
   renderSort();
+  connect().catch(e => { console.warn("Room connection failed", e); live = false; setStatus("Saved on this device only"); renderSort(); });
 
-  (async () => {
-    if (!window.claude || !window.claude.use) return;
-    const [dbNs, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
-    if (user) {
-      try { isEditor = await user.canEdit(); } catch (e) {}
-      try { uid = await user.id(); } catch (e) {}
-      try { const w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
-    }
-    renderSort();
-    if (!dbNs) return;
-    db = dbNs;
-    if (!uid || !canWrite) $("saveStatus").textContent = "Saved on this device only";
-    let first = true;
-    db.doc("control/session").onSnapshot(snap => {
-      const r = snap.exists && snap.data() && typeof snap.data().round === "string" ? snap.data().round : "r0";
-      if (first) {
-        first = false;
-        if (r !== round) { round = r; state = freshState(); loadLocal(); }
-        if (uid) {
-          db.doc("sorts/" + uid).get().then(s => {
-            const d = s.exists ? s.data() : null;
-            if (d && d.round === round && d.placements && !Object.keys(state.placements).length) {
-              const pl = {}; Object.entries(d.placements).forEach(([k, v]) => { if (T[k] && /^[789]-[123]$/.test(v)) pl[k] = v; });
-              state.placements = pl; state.checked = !!d.checked; if (d.checked) state.everChecked = true; saveLocal();
+  // ---------- PDF export: card fronts in their columns, then card backs ----------
+  const JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  function loadJsPdf() {
+    if (window.jspdf) return Promise.resolve(window.jspdf);
+    return new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = JSPDF_URL; sc.onload = () => res(window.jspdf); sc.onerror = () => rej(new Error("jsPDF failed to load"));
+      document.head.append(sc);
+    });
+  }
+  // The PDF's built-in fonts cover Latin-1 only.
+  const pdfText = t => String(t).replace(/[–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, "...").replace(/[^\x00-\xFF]/g, "");
+  const RGB = { ink: [22, 32, 31], muted: [86, 98, 95], line: [204, 212, 208], ok: [43, 122, 75], bad: [177, 61, 43], 1: [44, 106, 136], 2: [138, 101, 16], 3: [122, 60, 105] };
+  const RESULT_TEXT = { ok: "Right box", grade: "Wrong grade", oi: "Right grade, wrong organizing idea" };
+
+  function cardOrder() {
+    const seq = [];
+    GRADES.forEach(g => OIS.forEach(oi => state.order.forEach(id => { if (state.placements[id] === boxKey(g, oi)) seq.push(id); })));
+    state.order.forEach(id => { if (!state.placements[id]) seq.push(id); });
+    const num = {}; seq.forEach((id, i) => { num[id] = i + 1; });
+    return { seq, num };
+  }
+
+  async function makePdf() {
+    const btn = $("btnPdf");
+    btn.disabled = true; btn.textContent = "Preparing PDF…";
+    try {
+      const { jsPDF } = await loadJsPdf();
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+      const { seq, num } = cardOrder();
+      const today = new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+      let ok = 0; TILES.forEach(t => { if (result(t.id) === "ok") ok++; });
+      const setC = c => doc.setTextColor(...c);
+
+      // ----- fronts: three grade columns, each flowing onto extra pages if needed -----
+      const W = 792, H = 612, M = 36, GAP = 12, CW = (W - 2 * M - 2 * GAP) / 3, TOP = 84, BOTTOM = H - M;
+      const LH = 9.6;
+      doc.setFontSize(8);
+      const colItems = GRADES.map(g => {
+        const items = [{ kind: "grade", h: 24, g }];
+        OIS.forEach(oi => {
+          items.push({ kind: "oi", h: 18, oi });
+          const ids = seq.filter(id => state.placements[id] === boxKey(g, oi));
+          if (!ids.length) items.push({ kind: "empty", h: 14 });
+          ids.forEach(id => {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+            const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 16);
+            items.push({ kind: "tile", id, lines, h: 8 + lines.length * LH + 10 + 4 });
+          });
+          items.push({ kind: "gap", h: 6 });
+        });
+        return items;
+      });
+      const segs = colItems.map((items, ci) => {
+        const pages = [[]]; let y = TOP, curOi = null;
+        items.forEach((it, i) => {
+          if (it.kind === "oi") curOi = it.oi;
+          const need = it.kind === "oi" && items[i + 1] ? it.h + items[i + 1].h : it.h;
+          if (y + need > BOTTOM && pages[pages.length - 1].length) {
+            pages.push([]); y = TOP;
+            pages[pages.length - 1].push({ kind: "grade", h: 24, g: GRADES[ci], cont: true, y }); y += 24;
+            if (it.kind === "tile" || it.kind === "empty") { pages[pages.length - 1].push({ kind: "oi", h: 18, oi: curOi, cont: true, y }); y += 18; }
+          }
+          if (it.kind === "gap" && !pages[pages.length - 1].length) return;
+          pages[pages.length - 1].push({ ...it, y }); y += it.h;
+        });
+        return pages;
+      });
+      const frontPages = Math.max(...segs.map(p => p.length));
+      const header = (title, sub) => {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(15); setC(RGB.ink); doc.text(pdfText(title), M, M + 12);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9); setC(RGB.muted); doc.text(pdfText(sub), M, M + 28);
+      };
+      const sub = "My sort, " + today + ".  " + ok + " of " + TILES.length + " tiles in the right grade and organizing idea.  Card backs with the curriculum statements follow.";
+      for (let p = 0; p < frontPages; p++) {
+        if (p > 0) doc.addPage("letter", "landscape");
+        header("CEFL 7-9 Concept Sort" + (p ? " (continued)" : ""), sub);
+        GRADES.forEach((g, ci) => {
+          const x = M + ci * (CW + GAP);
+          (segs[ci][p] || []).forEach(it => {
+            if (it.kind === "grade") {
+              doc.setFont("helvetica", "bold"); doc.setFontSize(13); setC(RGB.ink);
+              doc.text("Grade " + g + (it.cont ? " (continued)" : ""), x, it.y + 12);
+              doc.setDrawColor(...RGB.ink); doc.setLineWidth(1.2); doc.line(x, it.y + 18, x + CW, it.y + 18);
+            } else if (it.kind === "oi") {
+              doc.setFillColor(...RGB[it.oi]); doc.rect(x, it.y + 4, 8, 8, "F");
+              doc.setFont("helvetica", "bold"); doc.setFontSize(9); setC(RGB[it.oi]);
+              doc.text(pdfText(OI_NAME[it.oi] + (it.cont ? " (continued)" : "")), x + 12, it.y + 11);
+            } else if (it.kind === "empty") {
+              doc.setFont("helvetica", "italic"); doc.setFontSize(8); setC(RGB.muted); doc.text("No tiles placed here", x + 4, it.y + 9);
+            } else if (it.kind === "tile") {
+              const r = result(it.id);
+              const c = r === "ok" ? RGB.ok : RGB.bad;
+              doc.setDrawColor(...RGB.line); doc.setLineWidth(0.6);
+              doc.roundedRect(x, it.y, CW, it.h - 4, 3, 3, "S");
+              doc.setFillColor(...c); doc.rect(x, it.y, 3, it.h - 4, "F");
+              doc.setFont("helvetica", "normal"); doc.setFontSize(8); setC(RGB.ink);
+              doc.text(it.lines, x + 9, it.y + 11);
+              doc.setFont("helvetica", "bold"); doc.setFontSize(7); setC(c);
+              doc.text(RESULT_TEXT[r] || "", x + 9, it.y + 8 + it.lines.length * LH + 6);
             }
-            renderSort();
-          }).catch(() => {});
+          });
+        });
+      }
+      const unplacedIds = seq.filter(id => !state.placements[id]);
+      if (unplacedIds.length) {
+        doc.addPage("letter", "landscape");
+        header("Tiles not placed", sub);
+        let ci = 0, y = TOP;
+        unplacedIds.forEach(id => {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+          const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 12);
+          const h = 8 + lines.length * LH + 6;
+          if (y + h > BOTTOM) { ci++; y = TOP; if (ci > 2) { doc.addPage("letter", "landscape"); header("Tiles not placed (continued)", sub); ci = 0; } }
+          const x = M + ci * (CW + GAP);
+          doc.setDrawColor(...RGB.line); doc.roundedRect(x, y, CW, h - 4, 3, 3, "S");
+          setC(RGB.ink); doc.text(lines, x + 6, y + 11);
+          y += h;
+        });
+      }
+
+      // ----- backs: one card per tile, in the same order and numbering -----
+      const PW = 612, PH = 792, PM = 48, TW = PW - 2 * PM, PB = PH - PM;
+      let y = 0;
+      const newBackPage = first => {
+        doc.addPage("letter", "portrait");
+        doc.setFont("helvetica", "bold"); doc.setFontSize(14); setC(RGB.ink);
+        doc.text(first ? "Card backs" : "Card backs (continued)", PM, PM + 10);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9); setC(RGB.muted);
+        doc.text("Each card shows where you placed the tile and the curriculum statements it comes from, word for word.", PM, PM + 26);
+        y = PM + 44;
+      };
+      newBackPage(true);
+      seq.forEach(id => {
+        const t = T[id];
+        const lo = D.struct[String(t.g)].lo[String(t.lo)];
+        const p = state.placements[id];
+        const r = result(id);
+        const blocks = [];
+        const add = (text, font, size, color, gapAfter = 2, indent = 0) => {
+          doc.setFont(font[0], font[1]); doc.setFontSize(size);
+          blocks.push({ lines: doc.splitTextToSize(pdfText(text), TW - 10 - indent), font, size, color, lh: size * 1.25, gapAfter, indent });
+        };
+        add(num[id] + ". " + t.label, ["helvetica", "bold"], 11, RGB.ink, 4);
+        add("You placed it: " + (p ? boxName(p) : "not placed") + (r ? "  (" + RESULT_TEXT[r] + ")" : ""), ["helvetica", "bold"], 8.5, r === "ok" ? RGB.ok : RGB.bad, 2);
+        add("Curriculum: Grade " + t.g + " - " + OI_NAME[t.oi] + " - OI." + t.oi + ".GQ." + t.lo + ".LO." + t.lo, ["helvetica", "normal"], 8.5, RGB.ink, 4);
+        add("Guiding question: " + lo.gq, ["helvetica", "normal"], 8.5, RGB.ink, 2);
+        add("Learning outcome: " + lo.lo, ["helvetica", "normal"], 8.5, RGB.ink, 5);
+        add("Curriculum statements (exact wording)", ["helvetica", "bold"], 7.5, RGB.muted, 2);
+        t.items.forEach(it => {
+          add(it.text.replace(/\n/g, " "), ["helvetica", "normal"], 8.5, RGB.ink, 1, 8);
+          add(it.code, ["courier", "normal"], 7.5, RGB.muted, 4, 8);
+        });
+        if (t.note) add("Note. " + t.note, ["helvetica", "italic"], 8.5, RGB.ink, 4);
+        if (t.thread) {
+          const same = TILES.filter(x => x.thread === t.thread && x.id !== id).sort((a, b) => a.g - b.g || num[a.id] - num[b.id]);
+          if (same.length) {
+            add("Same strand across the three years (" + D.threads[t.thread] + ")", ["helvetica", "bold"], 7.5, RGB.muted, 2);
+            same.forEach(x => add("Grade " + x.g + ": card " + num[x.id] + ", " + x.label, ["helvetica", "normal"], 8, RGB.ink, 1, 8));
+          }
         }
-        renderSort();
-      } else applyRound(r);
-    }, () => {});
-    db.collection("sorts").onSnapshot(snap => {
-      roomDocs = snap.docs.map(d => d.data() || {}).filter(d => d && typeof d.placements === "object");
-      if (view === "room") renderRoom();
-    }, () => {});
-  })();
+        // Flow the card's blocks; keep the title with the next two lines, split anywhere else.
+        const bh = b => b.lines.length * b.lh + b.gapAfter;
+        const headH = blocks.slice(0, 3).reduce((s, b) => s + bh(b), 0) + 10;
+        if (y + headH > PB) newBackPage(false);
+        let segTop = y; y += 10;
+        const bar = () => { doc.setFillColor(...RGB[t.oi]); doc.rect(PM, segTop, 3, y - segTop - 2, "F"); };
+        blocks.forEach((b, i) => {
+          if (i >= 3 && y + bh(b) > PB) {
+            bar(); newBackPage(false);
+            segTop = y;
+            doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); setC(RGB.muted);
+            doc.text(pdfText(num[id] + ". " + t.label + " (continued)"), PM + 10, y + 10);
+            y += 24;
+          }
+          doc.setFont(b.font[0], b.font[1]); doc.setFontSize(b.size); setC(b.color);
+          doc.text(b.lines, PM + 10 + b.indent, y);
+          y += bh(b);
+        });
+        bar();
+        doc.setDrawColor(...RGB.line); doc.setLineWidth(0.5); doc.line(PM, y + 2, PM + TW, y + 2);
+        y += 14;
+      });
+
+      const n = doc.getNumberOfPages();
+      for (let i = 1; i <= n; i++) {
+        doc.setPage(i);
+        const w = doc.internal.pageSize.getWidth(), hgt = doc.internal.pageSize.getHeight();
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8); setC(RGB.muted);
+        doc.text("Page " + i + " of " + n, w - 36, hgt - 20, { align: "right" });
+      }
+      doc.save("CEFL-concept-sort-" + new Date().toISOString().slice(0, 10) + ".pdf");
+    } catch (e) {
+      console.warn(e);
+      toast("The PDF couldn't be made. Check your internet connection and try again.");
+    } finally {
+      btn.disabled = false; btn.textContent = "Download PDF";
+    }
+  }
+  $("btnPdf").addEventListener("click", makePdf);
+
 })();
 </script>
 
