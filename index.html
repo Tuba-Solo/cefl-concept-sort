@@ -240,6 +240,22 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 .stat .meter { height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; margin: 6px 0 2px; }
 .stat .meter i { display: block; height: 100%; background: var(--tc, var(--ink)); }
 .stat .strong { color: var(--ink); font-weight: 700; }
+.seg { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.seg .seglabel { font-size: 0.8rem; font-weight: 700; color: var(--muted); margin-right: 2px; }
+.seg button { border: 1px solid var(--tc); border-left-width: 5px; background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--tcs); box-shadow: 0 0 0 2px var(--tc); }
+.btn.small { padding: 4px 10px; font-size: 0.85rem; text-decoration: none; color: var(--ink); }
+.tablescore { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--tcs); border: 1px solid var(--tc); border-left-width: 6px; }
+.tablescore b { font-family: var(--f-display); font-size: 1.2rem; margin-right: 4px; }
+.tablescore span { color: var(--muted); }
+body.screen .lede, body.screen .steps, body.screen #tablePick, body.screen #btnTableCheck, body.screen #tableScore, body.screen #saveStatus, body.screen #waitNote { display: none !important; }
+body.screen .wrap { max-width: none; padding-block: 12px 24px; }
+body.screen h1 { font-size: 1.5rem; }
+body.screen .tile { font-size: 1.02rem; }
+body.screen .tile .tchip { font-size: 0.74rem; }
+body.screen .box h3 { font-size: 1.1rem; }
+body.screen .colhead h2 { font-size: 1.6rem; }
+body.screen .toolbar { margin-top: 8px; }
 .toast { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; z-index: 30; font-weight: 600; max-width: calc(100vw - 32px); }
 
 @media (max-width: 860px) {
@@ -275,7 +291,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       <li><b>2</b> Tap one of your cards.</li>
       <li><b>3</b> Tap Place here in the box for the grade and organizing idea where it belongs.</li>
       <li><b>4</b> To move a card, tap it, then tap Place here in its new box.</li>
-      <li><b>5</b> Your facilitator checks the board when every table is done.</li>
+      <li><b>5</b> Press Check our cards to see which of your cards are in the right box. Move any marked ✗ and check again.</li>
+      <li><b>6</b> Your facilitator reveals the answers for the whole room.</li>
     </ol>
     <div class="tablepick" id="tablePick" hidden>
       <h2>Which table are you at?</h2>
@@ -293,7 +310,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         <span class="status" id="waitNote"></span>
         <button class="btn" id="btnPdf" disabled>Download PDF</button>
         <button class="btn quiet" id="btnReset">Start over</button>
-        <button class="btn primary" id="btnCheck">Check</button>
+        <button class="btn" id="btnTableCheck" hidden aria-pressed="false">Check our cards</button>
+        <button class="btn primary" id="btnCheck">Reveal answers</button>
       </div>
     </div>
     <div id="resetConfirm" hidden class="confirm" style="margin-bottom:10px">
@@ -303,9 +321,10 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     </div>
     <div id="checkConfirm" hidden class="confirm" style="margin-bottom:10px">
       <span id="checkConfirmText"></span>
-      <button class="btn" id="checkYes">Check anyway</button>
-      <button class="btn quiet" id="checkNo">Keep sorting</button>
+      <button class="btn" id="checkYes">Reveal anyway</button>
+      <button class="btn quiet" id="checkNo">Not yet</button>
     </div>
+    <div id="tableScore" hidden></div>
     <div id="score" hidden></div>
     <div class="work" id="work">
       <div class="trayside" id="trayside">
@@ -368,6 +387,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- session, presenter, shared order ----------
   const PRESENTER = /^#presenter$/i.test(location.hash);
+  const SCREEN = /^#screen$/i.test(location.hash);      // big-screen board for the facilitator to project: live, read-only
+  if (SCREEN) document.body.classList.add("screen");
   const SESSION = (new URLSearchParams(location.search).get("session") || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 40) || "cefl-pl";
   const LS = "cefl-room-v2:" + SESSION;
   // Same card order for everyone in a session, so boards and PDFs match from screen to screen.
@@ -389,6 +410,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   let view = "sort";
   let threadFilter = null;
   let detailId = null;
+  let tableCheck = false;   // this device: show right/wrong marks on my table's cards before the room is checked
   let live = false, fb = null, uid = null, lastError = "";
 
   const clean = obj => { const pl = {}; Object.entries(obj || {}).forEach(([k, v]) => { if (T[k] && VALID_KEY.test(v)) pl[k] = v; }); return pl; };
@@ -403,10 +425,11 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   }
   function saveLocal() { try { localStorage.setItem(LS, JSON.stringify({ placements: state.placements, checked: state.checked, everChecked: state.everChecked, myTable })); } catch (e) {} }
 
-  const canControl = () => PRESENTER || !live;           // Check and Start over: facilitator, or anyone working offline
+  const canControl = () => PRESENTER || (!live && !SCREEN);   // room Check and Clear: facilitator, or anyone working offline
   const canMove = id => !state.checked && (PRESENTER || (myTable !== null && tableOf(id) === myTable));
   const myIds = () => PRESENTER ? state.order : state.order.filter(id => tableOf(id) === myTable);
-  const trayIds = () => (PRESENTER || myTable) ? myIds().filter(id => !state.placements[id]) : [];
+  const trayIds = () => (PRESENTER || myTable) && !SCREEN ? myIds().filter(id => !state.placements[id]) : [];
+  const tableChecking = () => tableCheck && !state.checked && !PRESENTER && !SCREEN && !!myTable;
   const result = id => {
     const p = state.placements[id]; if (!p) return null;
     const t = T[id]; if (p === correctKey(t)) return "ok";
@@ -416,11 +439,12 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   // ---------- tiles ----------
   function tileEl(id, opts = {}) {
     const t = T[id];
-    const res = state.checked ? result(id) : null;
+    const res = state.checked ? result(id)
+      : (!opts.static && tableChecking() && t.table === myTable && state.placements[id]) ? (result(id) === "ok" ? "ok" : "notyet") : null;
     const movable = !opts.static && canMove(id);
     const cls = ["tile", "t" + t.table];
     if (res === "ok") cls.push("ok"); else if (res) cls.push("bad");
-    if (!opts.static && !movable && !state.checked) cls.push("nomove");
+    if (!opts.static && !movable && !state.checked && !SCREEN) cls.push("nomove");
     if (opts.extra) cls.push(opts.extra);
     const kids = [];
     if (res) kids.push(el("span", { class: "mark", "aria-hidden": "true", text: res === "ok" ? "✓" : "✗" }));
@@ -434,7 +458,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       }
     }
     kids.push(body);
-    const label = "Table " + t.table + ". " + t.label + (res ? (res === "ok" ? ". Correct." : ". Not where the curriculum puts it.") : "");
+    const label = "Table " + t.table + ". " + t.label + (res ? (res === "ok" ? ". Right box." : res === "notyet" ? ". Not the right box yet." : ". Not where the curriculum puts it.") : "");
     const b = el("button", {
       class: cls.join(" "), "data-id": id, "data-table": t.table, "aria-label": label,
       "aria-pressed": movable ? String(selected === id) : null,
@@ -449,6 +473,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   }
   function onTileClick(id) {
     if (state.checked || view !== "sort") { openDetail(id); return; }
+    if (SCREEN) return;
     if (!canMove(id)) {
       toast(myTable || PRESENTER ? "That's a Table " + tableOf(id) + " card. Table " + tableOf(id) + " places it." : "Choose your table first.");
       return;
@@ -466,7 +491,9 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- render: sort ----------
   function setTable(n) {
-    myTable = n; selected = null; saveLocal(); renderSort();
+    const was = myTable;
+    myTable = n; selected = null; tableCheck = false; saveLocal(); renderSort();
+    if (was && n && was !== n) toast("You're now at Table " + n + ".");
   }
   function renderSort() {
     const placedAll = TILES.filter(t => state.placements[t.id]).length;
@@ -475,27 +502,44 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     const left = trayIds();
 
     // table picker
-    $("tablePick").hidden = PRESENTER || !!myTable;
+    $("tablePick").hidden = PRESENTER || SCREEN || !!myTable;
     const chip = $("tableChip"); chip.innerHTML = "";
-    if (PRESENTER) chip.append(el("span", { class: "tablechip all", text: "Facilitator view" }));
-    else if (myTable) chip.append(el("span", { class: "tablechip t" + myTable, text: "You're at Table " + myTable }),
-      el("button", { class: "linkbtn", text: "Change", onclick: () => setTable(null) }));
+    if (PRESENTER) chip.append(el("span", { class: "tablechip all", text: "Facilitator view" }),
+      el("a", { class: "btn small", href: location.pathname + location.search + "#screen", target: "_blank", rel: "noopener", text: "Open big-screen board" }));
+    else if (SCREEN) chip.append(el("span", { class: "tablechip all", text: "Session " + SESSION }));
+    else if (myTable) {
+      const seg = el("div", { class: "seg", role: "group", "aria-label": "Your table" }, [el("span", { class: "seglabel", text: "Your table" })]);
+      TABLES.forEach(n => seg.append(el("button", { class: "t" + n, "aria-pressed": String(n === myTable), title: n === myTable ? "You're at Table " + n : "Switch to Table " + n, text: "Table " + n, onclick: () => { if (n !== myTable) setTable(n); } })));
+      chip.append(seg);
+    }
 
     // counts
     $("count").innerHTML = "";
-    if (state.checked) $("count").append("Checked ", el("small", { text: "· " + placedAll + " of " + TILES.length + " cards placed by the room" }));
-    else if (PRESENTER || !myTable) $("count").append(placedAll + " of " + TILES.length + " cards placed ", el("small", { text: "· whole room" }));
+    if (state.checked) $("count").append("Answers revealed ", el("small", { text: "· " + placedAll + " of " + TILES.length + " cards placed by the room" }));
+    else if (PRESENTER || SCREEN || !myTable) $("count").append(placedAll + " of " + TILES.length + " cards placed ", el("small", { text: "· whole room" }));
     else $("count").append("Table " + myTable + ": " + minePlaced + " of " + mine.length + " cards placed ", el("small", { text: "· room: " + placedAll + " of " + TILES.length }));
 
     // controls
     const ctl = canControl();
     $("btnCheck").hidden = !ctl; $("btnReset").hidden = !ctl;
-    $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
+    $("btnCheck").textContent = state.checked ? "Hide answers" : "Reveal answers";
     $("btnCheck").disabled = !state.checked && placedAll === 0;
-    $("waitNote").textContent = !ctl && !state.checked ? "Your facilitator checks the board when every table is done." : "";
+    $("waitNote").textContent = !ctl && !state.checked && !SCREEN ? "Your facilitator reveals the answers for the whole room." : "";
+    const tcb = $("btnTableCheck");
+    tcb.hidden = PRESENTER || SCREEN || !myTable || state.checked;
+    tcb.textContent = tableCheck ? "Hide our marks" : "Check our cards";
+    tcb.setAttribute("aria-pressed", String(tableCheck));
+    const ts = $("tableScore");
+    if (tableChecking()) {
+      const placed = mine.filter(id => state.placements[id]);
+      const right = placed.filter(id => result(id) === "ok").length;
+      ts.hidden = false; ts.className = "tablescore t" + myTable; ts.innerHTML = "";
+      ts.append(el("b", { text: right + " of " + mine.length }), " Table " + myTable + " cards are in the right box. ",
+        el("span", { text: (placed.length - right) + " marked ✗ need another look" + (mine.length - placed.length ? ", and " + (mine.length - placed.length) + " are still in the tray." : ".") + " Move any card and its mark updates." }));
+    } else ts.hidden = true;
     if ($("btnPdf").textContent.indexOf("Preparing") < 0) {
-      $("btnPdf").disabled = !state.checked; $("btnPdf").title = state.checked ? "" : "Available after the board is checked";
-      $("btnPdf").textContent = state.checked ? "Download PDF" : "Download PDF · after Check";
+      $("btnPdf").disabled = !state.checked; $("btnPdf").title = state.checked ? "" : "Available once the facilitator reveals the answers";
+      $("btnPdf").textContent = state.checked ? "Download PDF" : "Download PDF · after the reveal";
     }
 
     // tray
@@ -503,13 +547,13 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     tray.innerHTML = "";
     const th = $("trayHead"); th.className = "trayhead" + (myTable && !PRESENTER ? " t" + myTable : "");
     th.textContent = PRESENTER ? "Cards to place · all tables" : myTable ? "Table " + myTable + " cards to place" : "Cards to place";
-    $("trayside").hidden = state.checked && (showAnswers || !left.length);
+    $("trayside").hidden = SCREEN || (state.checked && (showAnswers || !left.length));
     $("work").classList.toggle("answers", $("trayside").hidden);
     if (left.length) left.forEach(id => tray.append(tileEl(id)));
     else tray.append(el("span", { class: "empty", text:
       !PRESENTER && !myTable ? "Choose your table above to get your cards." :
       state.checked ? "Every card was placed." :
-      PRESENTER ? "Every card is on the board." : "Your table's cards are all on the board. You can still move them until the board is checked." }));
+      PRESENTER ? "Every card is on the board." : "Your table's cards are all on the board. You can still move them until the facilitator reveals the answers." }));
 
     // board
     const board = $("board");
@@ -630,11 +674,11 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   $("detail").addEventListener("close", () => { detailId = null; });
 
   // ---------- render: progression ----------
-  function unlocked() { return state.checked || state.everChecked || PRESENTER; }
+  function unlocked() { return state.checked || state.everChecked || PRESENTER || SCREEN; }
   function renderProg() {
     const v = $("view-prog"); v.innerHTML = "";
     if (!unlocked()) {
-      v.append(el("div", { class: "locked" }, [el("h2", { text: "The progression view opens after the board is checked" }), el("p", { text: "This keeps the answers hidden until every table has made its own predictions." })]));
+      v.append(el("div", { class: "locked" }, [el("h2", { text: "The progression view opens when the facilitator reveals the answers" }), el("p", { text: "This keeps the answers hidden until every table has made its own predictions." })]));
       return;
     }
     v.append(el("p", { class: "lede", style: "margin-top:16px", text: "Read across a row to follow one guiding question through Grades 7, 8 and 9. Pick a strand to highlight it." }));
@@ -684,7 +728,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     wrap.append(el("div", { class: "stat" }, [el("div", { class: "tname", text: "Whole room" }), el("div", { class: "n", text: all + " of " + TILES.length }), el("div", { class: "k", text: "cards placed" }),
       state.checked ? el("div", { class: "k strong", text: TILES.filter(t => result(t.id) === "ok").length + " in the right box" }) : null]));
     v.append(wrap);
-    v.append(el("p", { class: "status", text: "Session: " + SESSION + (state.checked ? " · Checked" : " · Sorting") }));
+    v.append(el("p", { class: "status", text: "Session: " + SESSION + (state.checked ? " · Answers revealed" : " · Sorting") }));
   }
 
   // ---------- tabs ----------
@@ -692,7 +736,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     document.querySelectorAll("nav.tabs button").forEach(b => {
       b.setAttribute("aria-selected", String(b.dataset.view === view));
       const old = b.querySelector(".lock"); if (old) old.remove();
-      if (b.dataset.view === "prog" && !unlocked()) b.append(el("span", { class: "lock", "aria-label": "(locked until the board is checked)", text: "· after Check" }));
+      if (b.dataset.view === "prog" && !unlocked()) b.append(el("span", { class: "lock", "aria-label": "(locked until the answers are revealed)", text: "· after the reveal" }));
     });
     $("view-sort").hidden = view !== "sort";
     $("view-prog").hidden = view !== "prog";
@@ -713,11 +757,12 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 
   // ---------- controls ----------
   document.querySelectorAll("#tablePick button[data-table]").forEach(b => b.addEventListener("click", () => setTable(Number(b.dataset.table))));
+  $("btnTableCheck").addEventListener("click", () => { tableCheck = !tableCheck; selected = null; renderSort(); });
   $("btnCheck").addEventListener("click", () => {
     if (!canControl()) return;
     if (state.checked) { setChecked(false); return; }
     const left = TILES.filter(t => !state.placements[t.id]).length;
-    if (left) { $("checkConfirmText").textContent = left + " cards are still off the board. They will count as not placed."; $("checkConfirm").hidden = false; return; }
+    if (left) { $("checkConfirmText").textContent = left + " cards are still off the board. Reveal anyway? They will count as not placed."; $("checkConfirm").hidden = false; return; }
     setChecked(true);
   });
   $("checkYes").addEventListener("click", () => { $("checkConfirm").hidden = true; setChecked(true); });
