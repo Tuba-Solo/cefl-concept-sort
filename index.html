@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one board, three grade columns read as one three-year course; tabs for Sort, Progression, Room. */
+/* Layout: one shared board, three grade columns read as one three-year course; cards colour coded by table. */
 :root {
   --bg: #edf0ee;
   --surface: #ffffff;
@@ -17,12 +17,18 @@
   --muted: #56625f;
   --line: #ccd4d0;
   --focus: #1f5fbf;
-  --oi1: #2c6a88;
-  --oi2: #8a6510;
-  --oi3: #7a3c69;
-  --oi1-soft: #e2edf2;
-  --oi2-soft: #f3ecdb;
-  --oi3-soft: #f1e3ed;
+  --oi1: #3d4a47;
+  --oi2: #3d4a47;
+  --oi3: #3d4a47;
+  --oi1-soft: #eef1ef;
+  --oi2-soft: #eef1ef;
+  --oi3-soft: #eef1ef;
+  --t1: #c25a12;
+  --t2: #2a59c9;
+  --t3: #b42f74;
+  --t1-soft: #fbe9dc;
+  --t2-soft: #e2eafb;
+  --t3-soft: #f8e1ee;
   --ok: #2b7a4b;
   --ok-soft: #e0f0e6;
   --bad: #b13d2b;
@@ -36,16 +42,20 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121817; --surface: #1b2322; --sunk: #161d1c; --ink: #e6ecea; --muted: #9eaba7; --line: #2f3b39; --focus: #7aa7f0;
-    --oi1: #7fb6d2; --oi2: #d7b25a; --oi3: #d495c3;
-    --oi1-soft: #1c2c33; --oi2-soft: #2e2817; --oi3-soft: #2e1f2a;
+    --oi1: #b9c4c1; --oi2: #b9c4c1; --oi3: #b9c4c1;
+    --oi1-soft: #1f2827; --oi2-soft: #1f2827; --oi3-soft: #1f2827;
+    --t1: #f0a067; --t2: #8eaaf4; --t3: #ee8fc0;
+    --t1-soft: #3a2416; --t2-soft: #1b2640; --t3-soft: #3a1b2b;
     --ok: #6cc592; --ok-soft: #173024; --bad: #ef8a78; --bad-soft: #3a1f1b; --sel: #7aa7f0; --sel-soft: #1d2a40;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121817; --surface: #1b2322; --sunk: #161d1c; --ink: #e6ecea; --muted: #9eaba7; --line: #2f3b39; --focus: #7aa7f0;
-  --oi1: #7fb6d2; --oi2: #d7b25a; --oi3: #d495c3;
-  --oi1-soft: #1c2c33; --oi2-soft: #2e2817; --oi3-soft: #2e1f2a;
+  --oi1: #b9c4c1; --oi2: #b9c4c1; --oi3: #b9c4c1;
+  --oi1-soft: #1f2827; --oi2-soft: #1f2827; --oi3-soft: #1f2827;
+  --t1: #f0a067; --t2: #8eaaf4; --t3: #ee8fc0;
+  --t1-soft: #3a2416; --t2-soft: #1b2640; --t3-soft: #3a1b2b;
   --ok: #6cc592; --ok-soft: #173024; --bad: #ef8a78; --bad-soft: #3a1f1b; --sel: #7aa7f0; --sel-soft: #1d2a40;
   color-scheme: dark;
 }
@@ -90,11 +100,18 @@ nav.tabs button .lock { font-size: 0.75rem; margin-left: 4px; opacity: 0.7; }
 .tray.drop { border-color: var(--sel); background: var(--sel-soft); }
 .tray .empty { color: var(--muted); align-self: center; padding: 4px 6px; }
 
-.tile { display: inline-flex; align-items: flex-start; gap: 8px; text-align: left; max-width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
-.tile:hover { border-color: var(--muted); }
-.tile[aria-pressed="true"] { border-color: var(--sel); background: var(--sel-soft); box-shadow: 0 0 0 2px var(--sel); }
-.tile.ok { border-color: var(--ok); background: var(--ok-soft); }
-.tile.bad { border-color: var(--bad); background: var(--bad-soft); }
+.tile { --tc: var(--line); --tcs: var(--surface); display: inline-flex; align-items: flex-start; gap: 8px; text-align: left; max-width: 100%; border: 1px solid var(--line); border-left: 6px solid var(--tc); background: var(--tcs); border-radius: 8px; padding: 6px 10px 7px; cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
+.t1 { --tc: var(--t1); --tcs: var(--t1-soft); }
+.t2 { --tc: var(--t2); --tcs: var(--t2-soft); }
+.t3 { --tc: var(--t3); --tcs: var(--t3-soft); }
+.tile .tbody { display: flex; flex-direction: column; min-width: 0; }
+.tile .tchip { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tc); }
+.tile.nomove { cursor: default; }
+.tile.nomove:hover { border-color: var(--line); border-left-color: var(--tc); }
+.tile:hover { border-color: var(--muted); border-left-color: var(--tc); }
+.tile[aria-pressed="true"] { border-color: var(--sel); border-left-color: var(--tc); box-shadow: 0 0 0 3px var(--sel); }
+.tile.ok { border-color: var(--ok); border-left-color: var(--tc); box-shadow: inset 0 0 0 1px var(--ok); }
+.tile.bad { border-color: var(--bad); border-left-color: var(--tc); box-shadow: inset 0 0 0 1px var(--bad); }
 .tile .mark { font-weight: 700; flex: none; width: 1.1em; }
 .tile.ok .mark { color: var(--ok); }
 .tile.bad .mark { color: var(--bad); }
@@ -206,6 +223,23 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
 .dist .seg.right { color: var(--ok); font-weight: 500; }
 .rlabel { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 
+.tablepick { margin: 18px 0 4px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.tablepick h2 { font-size: 1.15rem; margin-bottom: 4px; }
+.tablepick p { margin: 0 0 12px; color: var(--muted); }
+.tablepick .choices { display: flex; flex-wrap: wrap; gap: 12px; }
+.tablepick .choices button { flex: 1 1 160px; min-height: 72px; border-radius: 12px; border: 2px solid var(--tc); border-left-width: 10px; background: var(--tcs); font-family: var(--f-display); font-size: 1.35rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+.tablechip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--tcs, var(--sunk)); border: 1px solid var(--tc, var(--line)); border-left-width: 5px; font-weight: 700; font-size: 0.85rem; }
+.tablechip.all { --tc: var(--ink); --tcs: var(--sunk); }
+.toolbar .who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 0.85rem; }
+.trayhead.t1, .trayhead.t2, .trayhead.t3 { color: var(--tc); }
+.pertable { display: flex; flex-wrap: wrap; gap: 8px; }
+.dlg .head .tablechip { margin-bottom: 6px; }
+.tstat { border-top: 5px solid var(--tc); }
+.tstat .tname, .stat .tname { font-weight: 700; color: var(--tc, var(--ink)); }
+.stat .meter { height: 8px; border-radius: 4px; background: var(--sunk); overflow: hidden; margin: 6px 0 2px; }
+.stat .meter i { display: block; height: 100%; background: var(--tc, var(--ink)); }
+.stat .strong { color: var(--ink); font-weight: 700; }
 .toast { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; z-index: 30; font-weight: 600; max-width: calc(100vw - 32px); }
 
 @media (max-width: 860px) {
@@ -226,35 +260,46 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   <header class="top">
     <div>
       <h1>CEFL 7–9 Concept Sort</h1>
-      <p class="lede">CEFL is one course that runs for three years. All three grades share the same three organizing ideas, and each grade has its own outcomes inside them. Place each tile where the curriculum puts it.</p>
+      <p class="lede">CEFL is one course that runs for three years. All three grades share the same three organizing ideas, and each grade has its own outcomes inside them. Each table places its own cards on one board the whole room shares.</p>
     </div>
     <nav class="tabs" role="tablist" aria-label="Views">
       <button role="tab" id="tab-sort" aria-selected="true" data-view="sort">Sort</button>
       <button role="tab" id="tab-prog" aria-selected="false" data-view="prog">Progression</button>
-      <button role="tab" id="tab-room" aria-selected="false" data-view="room">Room</button>
+      <button role="tab" id="tab-room" aria-selected="false" data-view="room">Tables</button>
     </nav>
   </header>
 
   <section id="view-sort">
     <ol class="steps">
-      <li><b>1</b> Tap a tile.</li>
-      <li><b>2</b> Tap Place here in the box for the grade and organizing idea where it belongs.</li>
-      <li><b>3</b> To move a tile, tap it, then tap Place here in its new box.</li>
-      <li><b>4</b> When every tile is placed, press Check.</li>
+      <li><b>1</b> Choose your table. Your cards are your table's colour.</li>
+      <li><b>2</b> Tap one of your cards.</li>
+      <li><b>3</b> Tap Place here in the box for the grade and organizing idea where it belongs.</li>
+      <li><b>4</b> To move a card, tap it, then tap Place here in its new box.</li>
+      <li><b>5</b> Your facilitator checks the board when every table is done.</li>
     </ol>
+    <div class="tablepick" id="tablePick" hidden>
+      <h2>Which table are you at?</h2>
+      <p>You'll get your table's cards. Everyone at your table shares them.</p>
+      <div class="choices">
+        <button class="t1" data-table="1">Table 1</button>
+        <button class="t2" data-table="2">Table 2</button>
+        <button class="t3" data-table="3">Table 3</button>
+      </div>
+    </div>
     <div class="toolbar">
-      <div class="count" id="count"></div>
+      <div class="who"><span id="tableChip" class="who"></span><div class="count" id="count"></div></div>
       <div class="btns">
         <span class="status" id="saveStatus" aria-live="polite"></span>
+        <span class="status" id="waitNote"></span>
         <button class="btn" id="btnPdf" disabled>Download PDF</button>
         <button class="btn quiet" id="btnReset">Start over</button>
         <button class="btn primary" id="btnCheck">Check</button>
       </div>
     </div>
     <div id="resetConfirm" hidden class="confirm" style="margin-bottom:10px">
-      <span>Move every tile back to the tray?</span>
-      <button class="btn" id="resetYes">Yes, start over</button>
-      <button class="btn quiet" id="resetNo">Keep my sort</button>
+      <span>Clear the whole board? Every table's cards go back to their trays.</span>
+      <button class="btn" id="resetYes">Yes, clear the board</button>
+      <button class="btn quiet" id="resetNo">Keep the board</button>
     </div>
     <div id="checkConfirm" hidden class="confirm" style="margin-bottom:10px">
       <span id="checkConfirmText"></span>
@@ -264,8 +309,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     <div id="score" hidden></div>
     <div class="work" id="work">
       <div class="trayside" id="trayside">
-        <div class="trayhead">Tiles to place</div>
-        <div class="tray" id="tray" aria-label="Unplaced tiles"></div>
+        <div class="trayhead" id="trayHead">Cards to place</div>
+        <div class="tray" id="tray" aria-label="Cards to place"></div>
       </div>
       <div class="board" id="board"></div>
     </div>
@@ -292,6 +337,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   const T = Object.fromEntries(TILES.map(t => [t.id, t]));
   const GRADES = [7, 8, 9];
   const OIS = [1, 2, 3];
+  const TABLES = [1, 2, 3];
   const OI_NAME = {};
   OIS.forEach(o => { OI_NAME[o] = D.struct["7"].oi[String(o)].split(":")[0].trim(); });
   const LOS_BY_OI = { 1: [1, 2], 2: [3], 3: [4, 5] };
@@ -311,38 +357,56 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     return n;
   };
   const boxName = key => { const [g, o] = key.split("-"); return "Grade " + g + " · " + OI_NAME[o]; };
+  const VALID_KEY = /^[789]-[123]$/;
+
+  // ---------- tables: deal the cards so every table gets a mix of grades and organizing ideas ----------
+  TILES.slice()
+    .sort((a, b) => a.oi - b.oi || a.g - b.g || a.lo - b.lo || a.id.localeCompare(b.id))
+    .forEach((t, i) => { t.table = (i % 3) + 1; });
+  const tableOf = id => T[id].table;
+  const tableCount = n => TILES.filter(t => t.table === n).length;
+
+  // ---------- session, presenter, shared order ----------
+  const PRESENTER = /^#presenter$/i.test(location.hash);
+  const SESSION = (new URLSearchParams(location.search).get("session") || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 40) || "cefl-pl";
+  const LS = "cefl-room-v2:" + SESSION;
+  // Same card order for everyone in a session, so boards and PDFs match from screen to screen.
+  const ORDER = (() => {
+    let h = 2166136261;
+    for (const c of SESSION) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+    const a = TILES.map(t => t.id);
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  })();
 
   // ---------- state ----------
-  const LS = "cefl-sort-v1";
-  const SESSION = (new URLSearchParams(location.search).get("session") || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 40) || "cefl-pl";
-  let round = SESSION;
-  let state = freshState();
+  // placements is the room's shared board: card id -> "grade-oi". checked is the room's Check, set by the facilitator.
+  const state = { placements: {}, checked: false, everChecked: false, order: ORDER };
+  let myTable = null;
   let selected = null;
   let showAnswers = false;
   let view = "sort";
   let threadFilter = null;
-  let revealRoom = false;
-  let roomDocs = [];
-  let live = false, fb = null, uid = null, canWrite = true;
+  let detailId = null;
+  let live = false, fb = null, uid = null, lastError = "";
 
-  function shuffled(ids) {
-    const a = ids.slice();
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  }
-  function freshState() { return { placements: {}, checked: false, everChecked: false, order: shuffled(TILES.map(t => t.id)) }; }
+  const clean = obj => { const pl = {}; Object.entries(obj || {}).forEach(([k, v]) => { if (T[k] && VALID_KEY.test(v)) pl[k] = v; }); return pl; };
   function loadLocal() {
     try {
       const s = JSON.parse(localStorage.getItem(LS) || "null");
-      if (s && s.round === round && s.state && Array.isArray(s.state.order)) {
-        const known = new Set(TILES.map(t => t.id));
-        if (s.state.order.length === known.size && s.state.order.every(id => known.has(id))) state = s.state;
-      }
+      if (!s) return;
+      state.placements = clean(s.placements);
+      state.checked = !!s.checked; state.everChecked = !!s.everChecked;
+      if (TABLES.includes(s.myTable)) myTable = s.myTable;
     } catch (e) {}
   }
-  function saveLocal() { try { localStorage.setItem(LS, JSON.stringify({ round, state })); } catch (e) {} }
+  function saveLocal() { try { localStorage.setItem(LS, JSON.stringify({ placements: state.placements, checked: state.checked, everChecked: state.everChecked, myTable })); } catch (e) {} }
 
-  const unplaced = () => state.order.filter(id => !state.placements[id]);
+  const canControl = () => PRESENTER || !live;           // Check and Start over: facilitator, or anyone working offline
+  const canMove = id => !state.checked && (PRESENTER || (myTable !== null && tableOf(id) === myTable));
+  const myIds = () => PRESENTER ? state.order : state.order.filter(id => tableOf(id) === myTable);
+  const trayIds = () => (PRESENTER || myTable) ? myIds().filter(id => !state.placements[id]) : [];
   const result = id => {
     const p = state.placements[id]; if (!p) return null;
     const t = T[id]; if (p === correctKey(t)) return "ok";
@@ -353,29 +417,31 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   function tileEl(id, opts = {}) {
     const t = T[id];
     const res = state.checked ? result(id) : null;
-    const cls = ["tile"];
+    const movable = !opts.static && canMove(id);
+    const cls = ["tile", "t" + t.table];
     if (res === "ok") cls.push("ok"); else if (res) cls.push("bad");
+    if (!opts.static && !movable && !state.checked) cls.push("nomove");
     if (opts.extra) cls.push(opts.extra);
     const kids = [];
     if (res) kids.push(el("span", { class: "mark", "aria-hidden": "true", text: res === "ok" ? "✓" : "✗" }));
-    const body = el("span", {}, [t.label]);
+    const body = el("span", { class: "tbody" }, [el("span", { class: "tchip", text: "Table " + t.table }), el("span", { class: "tlabel", text: t.label })]);
     if (!opts.static && state.checked) {
       if (opts.answers) {
-        if (opts.was) body.append(el("span", { class: "was", text: "You placed it in " + boxName(opts.was) }));
+        if (opts.was) body.append(el("span", { class: "was", text: "Placed in " + boxName(opts.was) }));
         else if (!state.placements[id]) body.append(el("span", { class: "was", text: "Not placed" }));
       } else if (res && res !== "ok") {
         body.append(el("span", { class: "was", text: "Belongs in " + boxName(correctKey(t)) }));
       }
     }
     kids.push(body);
-    const label = t.label + (res ? (res === "ok" ? ". Correct." : ". Not where the curriculum puts it.") : "");
+    const label = "Table " + t.table + ". " + t.label + (res ? (res === "ok" ? ". Correct." : ". Not where the curriculum puts it.") : "");
     const b = el("button", {
-      class: cls.join(" "), "data-id": id, "aria-label": label,
-      "aria-pressed": !state.checked && !opts.static ? String(selected === id) : null,
-      draggable: !state.checked && !opts.static ? "true" : null,
+      class: cls.join(" "), "data-id": id, "data-table": t.table, "aria-label": label,
+      "aria-pressed": movable ? String(selected === id) : null,
+      draggable: movable ? "true" : null,
     }, kids);
     b.addEventListener("click", e => { e.stopPropagation(); onTileClick(id); });
-    if (!state.checked && !opts.static) {
+    if (movable) {
       b.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; selected = id; });
       b.addEventListener("dragend", () => { selected = null; renderSort(); });
     }
@@ -383,42 +449,76 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   }
   function onTileClick(id) {
     if (state.checked || view !== "sort") { openDetail(id); return; }
+    if (!canMove(id)) {
+      toast(myTable || PRESENTER ? "That's a Table " + tableOf(id) + " card. Table " + tableOf(id) + " places it." : "Choose your table first.");
+      return;
+    }
     selected = selected === id ? null : id;
     renderSort();
   }
   function place(id, key) {
-    if (state.checked) return;
+    if (!id || !canMove(id)) return;
     if (key) state.placements[id] = key; else delete state.placements[id];
     selected = null;
-    persist(); renderSort();
+    saveLocal(); renderSort();
+    if (live) writeCard(id, key);
   }
 
   // ---------- render: sort ----------
+  function setTable(n) {
+    myTable = n; selected = null; saveLocal(); renderSort();
+  }
   function renderSort() {
-    const left = unplaced();
-    const placedN = TILES.length - left.length;
-    $("count").innerHTML = "";
-    $("count").append(state.checked ? "Checked " : (left.length ? left.length + " tiles left to place " : "All tiles placed "),
-      el("small", { text: "· " + placedN + " of " + TILES.length + " placed" }));
-    $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
-    $("btnCheck").disabled = !state.checked && placedN === 0;
-    if ($("btnPdf").textContent.indexOf("Preparing") < 0) { $("btnPdf").disabled = !state.checked; $("btnPdf").title = state.checked ? "" : "Press Check first"; $("btnPdf").textContent = state.checked ? "Download PDF" : "Download PDF · after Check"; }
+    const placedAll = TILES.filter(t => state.placements[t.id]).length;
+    const mine = myIds();
+    const minePlaced = mine.filter(id => state.placements[id]).length;
+    const left = trayIds();
 
+    // table picker
+    $("tablePick").hidden = PRESENTER || !!myTable;
+    const chip = $("tableChip"); chip.innerHTML = "";
+    if (PRESENTER) chip.append(el("span", { class: "tablechip all", text: "Facilitator view" }));
+    else if (myTable) chip.append(el("span", { class: "tablechip t" + myTable, text: "You're at Table " + myTable }),
+      el("button", { class: "linkbtn", text: "Change", onclick: () => setTable(null) }));
+
+    // counts
+    $("count").innerHTML = "";
+    if (state.checked) $("count").append("Checked ", el("small", { text: "· " + placedAll + " of " + TILES.length + " cards placed by the room" }));
+    else if (PRESENTER || !myTable) $("count").append(placedAll + " of " + TILES.length + " cards placed ", el("small", { text: "· whole room" }));
+    else $("count").append("Table " + myTable + ": " + minePlaced + " of " + mine.length + " cards placed ", el("small", { text: "· room: " + placedAll + " of " + TILES.length }));
+
+    // controls
+    const ctl = canControl();
+    $("btnCheck").hidden = !ctl; $("btnReset").hidden = !ctl;
+    $("btnCheck").textContent = state.checked ? "Keep sorting" : "Check";
+    $("btnCheck").disabled = !state.checked && placedAll === 0;
+    $("waitNote").textContent = !ctl && !state.checked ? "Your facilitator checks the board when every table is done." : "";
+    if ($("btnPdf").textContent.indexOf("Preparing") < 0) {
+      $("btnPdf").disabled = !state.checked; $("btnPdf").title = state.checked ? "" : "Available after the board is checked";
+      $("btnPdf").textContent = state.checked ? "Download PDF" : "Download PDF · after Check";
+    }
+
+    // tray
     const tray = $("tray");
     tray.innerHTML = "";
+    const th = $("trayHead"); th.className = "trayhead" + (myTable && !PRESENTER ? " t" + myTable : "");
+    th.textContent = PRESENTER ? "Cards to place · all tables" : myTable ? "Table " + myTable + " cards to place" : "Cards to place";
     $("trayside").hidden = state.checked && (showAnswers || !left.length);
     $("work").classList.toggle("answers", $("trayside").hidden);
     if (left.length) left.forEach(id => tray.append(tileEl(id)));
-    else tray.append(el("span", { class: "empty", text: state.checked ? "Every tile was placed." : "The tray is empty. Press Check when you're ready." }));
+    else tray.append(el("span", { class: "empty", text:
+      !PRESENTER && !myTable ? "Choose your table above to get your cards." :
+      state.checked ? "Every card was placed." :
+      PRESENTER ? "Every card is on the board." : "Your table's cards are all on the board. You can still move them until the board is checked." }));
 
+    // board
     const board = $("board");
     board.innerHTML = "";
     const inBox = {};
-    if (state.checked && showAnswers) {
-      TILES.forEach(t => { (inBox[correctKey(t)] ||= []).push(t.id); });
-    } else {
-      state.order.forEach(id => { const p = state.placements[id]; if (p) (inBox[p] ||= []).push(id); });
-    }
+    if (state.checked && showAnswers) TILES.forEach(t => { (inBox[correctKey(t)] ||= []).push(t.id); });
+    else state.order.forEach(id => { const p = state.placements[id]; if (p) (inBox[p] ||= []).push(id); });
+    // within a box, list cards by table so each table can find its own
+    Object.values(inBox).forEach(ids => ids.sort((a, b) => tableOf(a) - tableOf(b) || state.order.indexOf(a) - state.order.indexOf(b)));
     GRADES.forEach((g, i) => {
       const col = el("div", { class: "col" }, [
         el("div", { class: "colhead" }, [el("h2", { text: "Grade " + g }), el("span", { class: "yr", text: "Year " + (i + 1) + " of 3" })]),
@@ -428,25 +528,19 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         const isTarget = !!selected && !state.checked;
         const box = el("div", {
           class: "box" + (isTarget ? " target" : ""), "data-oi": oi, "data-key": key,
-          role: isTarget ? "button" : "region", tabindex: isTarget ? "0" : null,
-          "aria-label": "Grade " + g + ", " + OI_NAME[oi] + (isTarget ? ". Place the selected tile here." : ""),
+          role: "region", "aria-label": "Grade " + g + ", " + OI_NAME[oi],
         }, [el("h3", { text: OI_NAME[oi] })]);
         const slot = el("div", { class: "slot" });
-        const ids = inBox[key] || [];
-        ids.forEach(id => {
+        (inBox[key] || []).forEach(id => {
           const was = state.checked && showAnswers && state.placements[id] && state.placements[id] !== key ? state.placements[id] : null;
           const extra = state.checked && showAnswers && !state.placements[id] ? "dim" : null;
           slot.append(tileEl(id, { was, extra, answers: state.checked && showAnswers }));
         });
-        if (isTarget) slot.append(el("button", { class: "placehere", text: "Place here", "aria-label": "Place the selected tile in Grade " + g + ", " + OI_NAME[oi], onclick: e => { e.stopPropagation(); place(selected, key); } }));
+        if (isTarget) slot.append(el("button", { class: "placehere", text: "Place here", "aria-label": "Place the selected card in Grade " + g + ", " + OI_NAME[oi], onclick: e => { e.stopPropagation(); place(selected, key); } }));
         box.append(slot);
-        if (isTarget) {
-          box.addEventListener("click", () => place(selected, key));
-          box.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(selected, key); } });
-        }
         box.addEventListener("dragover", e => { if (!state.checked) { e.preventDefault(); box.classList.add("drop"); } });
         box.addEventListener("dragleave", () => box.classList.remove("drop"));
-        box.addEventListener("drop", e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (T[id]) place(id, key); });
+        box.addEventListener("drop", e => { e.preventDefault(); box.classList.remove("drop"); const id = e.dataTransfer.getData("text/plain"); if (T[id]) place(id, key); });
         col.append(box);
       });
       board.append(col);
@@ -455,7 +549,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     const sb = $("selbar");
     if (selected && !state.checked) {
       sb.hidden = false;
-      $("selWhat").textContent = "Selected: " + T[selected].label + ". Choose a box.";
+      $("selWhat").textContent = "Selected: " + T[selected].label + ". Tap Place here in its box.";
       $("selTray").hidden = !state.placements[selected];
     } else sb.hidden = true;
 
@@ -475,31 +569,38 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       el("div", {}, [el("div", { class: "big", text: String(oi) }), el("span", { text: "right grade, wrong organizing idea" })]),
     );
     if (none) s.append(el("div", {}, [el("div", { class: "big", text: String(none) }), el("span", { text: "not placed" })]));
+    const per = el("div", { class: "pertable" });
+    TABLES.forEach(n => {
+      const ids = TILES.filter(t => t.table === n).map(t => t.id);
+      per.append(el("span", { class: "tablechip t" + n, text: "Table " + n + ": " + ids.filter(id => result(id) === "ok").length + " of " + ids.length }));
+    });
+    s.append(per);
     const cb = el("input", { type: "checkbox", id: "showAns" });
     cb.checked = showAnswers;
     cb.addEventListener("change", () => { showAnswers = cb.checked; renderSort(); });
-    s.append(el("label", { for: "showAns" }, [cb, "Show where every tile belongs"]));
-    s.append(el("span", { text: "Tap any tile to read the curriculum statements behind it." }));
+    s.append(el("label", { for: "showAns" }, [cb, "Show where every card belongs"]));
+    s.append(el("span", { text: "Tap any card to read the curriculum statements behind it." }));
   }
 
-  // ---------- detail ----------
+  // ---------- detail (card back) ----------
   function openDetail(id) {
+    detailId = id;
     const t = T[id];
     const lo = D.struct[String(t.g)].lo[String(t.lo)];
     const body = $("detailBody");
     body.innerHTML = "";
     const close = el("button", { class: "btn quiet", text: "Close", onclick: () => $("detail").close() });
-    body.append(el("div", { class: "head" }, [el("h2", { text: t.label }), close]));
-    // Placement facts, all from the same two sources the board uses: state.placements and the tile's own grade and OI.
+    body.append(el("div", { class: "head" }, [el("div", {}, [el("span", { class: "tablechip t" + t.table, text: "Table " + t.table + " card" }), el("h2", { text: t.label })]), close]));
+    // Placement facts come from the same two sources the board uses: the shared placements and the card's own grade and OI.
     const p = state.placements[id];
     const right = correctKey(t);
     const verdict = el("dl", { class: "verdict" });
-    if (p || state.everChecked) {
+    if (p || state.checked) {
       const ok = p === right;
       verdict.append(
-        el("dt", { text: "You placed it in" }),
-        el("dd", { class: p ? (ok ? "ok" : "bad") : "bad" }, [
-          el("span", { class: "mark", "aria-hidden": "true", text: p ? (ok ? "✓" : "✗") : "✗" }),
+        el("dt", { text: "Table " + t.table + " placed it in" }),
+        el("dd", { class: p && ok ? "ok" : "bad" }, [
+          el("span", { class: "mark", "aria-hidden": "true", text: p && ok ? "✓" : "✗" }),
           p ? boxName(p) : "Not placed",
           el("span", { class: "why", text: !p ? "" : ok ? "Correct." : (Number(p.split("-")[0]) === t.g ? "Right grade, wrong organizing idea." : "Wrong grade.") }),
         ]),
@@ -523,20 +624,19 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       body.append(box);
     }
     const dlg = $("detail");
-    if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } }
-    close.focus();
+    if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute("open", ""); } close.focus(); }
   }
   $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
+  $("detail").addEventListener("close", () => { detailId = null; });
 
   // ---------- render: progression ----------
-  const PRESENTER = /^#presenter$/i.test(location.hash);
-  function unlocked() { return state.everChecked || PRESENTER; }
-  function lockedPanel(what) {
-    return el("div", { class: "locked" }, [el("h2", { text: what + " opens after you check your sort" }), el("p", { text: "Sort the tiles first, then press Check. This keeps the answers hidden until you've made your own predictions." })]);
-  }
+  function unlocked() { return state.checked || state.everChecked || PRESENTER; }
   function renderProg() {
     const v = $("view-prog"); v.innerHTML = "";
-    if (!unlocked()) { v.append(lockedPanel("The progression view")); return; }
+    if (!unlocked()) {
+      v.append(el("div", { class: "locked" }, [el("h2", { text: "The progression view opens after the board is checked" }), el("p", { text: "This keeps the answers hidden until every table has made its own predictions." })]));
+      return;
+    }
     v.append(el("p", { class: "lede", style: "margin-top:16px", text: "Read across a row to follow one guiding question through Grades 7, 8 and 9. Pick a strand to highlight it." }));
     const f = el("div", { class: "prog-filter" }, [el("span", { class: "lbl", text: "Strand" })]);
     const mk = (key, name) => el("button", { "aria-pressed": String(threadFilter === key), onclick: () => { threadFilter = threadFilter === key ? null : key; renderProg(); } }, [name]);
@@ -563,65 +663,36 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     v.append(grid);
   }
 
-  // ---------- render: room ----------
-  function currentDocs() { return roomDocs.filter(d => d.placements && Object.keys(d.placements).length); }
+  // ---------- render: tables ----------
   function renderRoom() {
     const v = $("view-room"); v.innerHTML = "";
-    if (!live) { v.append(el("div", { class: "locked" }, [el("h2", { text: "Room results aren't available right now" }), el("p", { text: "This browser couldn't connect to the room. Your own sort is still saved on this device." }), el("p", { class: "status", text: "Reason: " + (lastError || "still connecting") })])); return; }
-    if (!unlocked()) { v.append(lockedPanel("Room results")); return; }
-    const docs = currentDocs();
-    const checkedN = docs.filter(d => d.checked).length;
-    let tot = 0, cnt = 0;
-    docs.forEach(d => { TILES.forEach(t => { if (d.placements[t.id]) { cnt++; if (d.placements[t.id] === correctKey(t)) tot++; } }); });
-    v.append(el("div", { class: "room-sum" }, [
-      el("div", { class: "stat" }, [el("div", { class: "n", text: String(docs.length) }), el("div", { class: "k", text: (docs.length === 1 ? "person" : "people") + " sorting this session" })]),
-      el("div", { class: "stat" }, [el("div", { class: "n", text: String(checkedN) }), el("div", { class: "k", text: (checkedN === 1 ? "has" : "have") + " pressed Check" })]),
-      el("div", { class: "stat" }, [el("div", { class: "n", text: cnt ? Math.round(100 * tot / cnt) + "%" : "–" }), el("div", { class: "k", text: "of placed tiles in the right box" })]),
-    ]));
-    const ctl = el("div", { class: "room-ctl" });
-    const cb = el("input", { type: "checkbox", id: "revealRoom" });
-    cb.checked = revealRoom;
-    cb.addEventListener("change", () => { revealRoom = cb.checked; renderRoom(); });
-    ctl.append(el("label", { for: "revealRoom" }, [cb, "Show the curriculum grade"]));
-    ctl.append(el("span", { class: "status", text: "Session: " + SESSION }));
-    v.append(ctl);
-    if (!docs.length) { v.append(el("div", { class: "locked" }, [el("h2", { text: "No sorts yet this session" }), el("p", { text: "Results appear here as people place tiles." })])); return; }
-    const rows = TILES.map(t => {
-      const c = { 7: 0, 8: 0, 9: 0 }; let placed = 0, exact = 0, wrongOi = 0;
-      docs.forEach(d => { const p = d.placements[t.id]; if (!p) return; placed++; const g = Number(p.split("-")[0]); c[g]++; if (p === correctKey(t)) exact++; else if (g === t.g) wrongOi++; });
-      return { t, c, placed, exact, wrongOi, pct: placed ? exact / placed : 1 };
-    }).sort((a, b) => a.pct - b.pct || b.placed - a.placed);
-    const tb = el("tbody");
-    rows.forEach(r => {
-      const dist = el("div", { class: "dist" });
-      GRADES.forEach(g => {
-        const right = revealRoom && g === r.t.g;
-        dist.append(el("div", { class: "seg" + (right ? " right" : "") }, [
-          el("span", { text: "Gr " + g + " · " + r.c[g] + (right ? " · curriculum" : "") }),
-          el("div", { class: "bar" }, [el("i", { style: "width:" + (r.placed ? Math.round(100 * r.c[g] / r.placed) : 0) + "%" })]),
-        ]));
-      });
-      tb.append(el("tr", {}, [
-        el("td", {}, [el("button", { class: "rlabel", text: r.t.label, onclick: () => openDetail(r.t.id) })]),
-        el("td", {}, [dist]),
-        el("td", { class: "num", text: revealRoom ? String(r.wrongOi) : "–" }),
-        el("td", { class: "num", text: revealRoom ? (r.placed ? Math.round(100 * r.pct) + "%" : "–") : "–" }),
+    if (!live) v.append(el("p", { class: "status", style: "margin-top:16px", text: "Not connected to the room, so these numbers are from this device only. Reason: " + (lastError || "still connecting") }));
+    const wrap = el("div", { class: "room-sum" });
+    TABLES.forEach(n => {
+      const ids = TILES.filter(t => t.table === n).map(t => t.id);
+      const placed = ids.filter(id => state.placements[id]).length;
+      const right = ids.filter(id => result(id) === "ok").length;
+      wrap.append(el("div", { class: "stat tstat t" + n }, [
+        el("div", { class: "tname", text: "Table " + n }),
+        el("div", { class: "n", text: placed + " of " + ids.length }),
+        el("div", { class: "k", text: "cards placed" }),
+        el("div", { class: "meter" }, [el("i", { style: "width:" + Math.round(100 * placed / ids.length) + "%" })]),
+        state.checked ? el("div", { class: "k strong", text: right + " in the right box" }) : null,
       ]));
     });
-    v.append(el("div", { class: "rtable" }, [el("table", {}, [
-      el("thead", {}, [el("tr", {}, [el("th", { text: "Tile" }), el("th", { text: "Where the room placed it" }), el("th", { class: "num", text: "Right grade, wrong OI" }), el("th", { class: "num", text: "Fully correct" })])]),
-      tb,
-    ])]));
-    if (!revealRoom) v.append(el("p", { class: "status", text: "Turn on “Show the curriculum grade” to see which placements match the curriculum. Tiles are listed with the most-misplaced first once it's on." }));
+    const all = TILES.filter(t => state.placements[t.id]).length;
+    wrap.append(el("div", { class: "stat" }, [el("div", { class: "tname", text: "Whole room" }), el("div", { class: "n", text: all + " of " + TILES.length }), el("div", { class: "k", text: "cards placed" }),
+      state.checked ? el("div", { class: "k strong", text: TILES.filter(t => result(t.id) === "ok").length + " in the right box" }) : null]));
+    v.append(wrap);
+    v.append(el("p", { class: "status", text: "Session: " + SESSION + (state.checked ? " · Checked" : " · Sorting") }));
   }
 
   // ---------- tabs ----------
   function renderTabs() {
     document.querySelectorAll("nav.tabs button").forEach(b => {
       b.setAttribute("aria-selected", String(b.dataset.view === view));
-      const lockable = b.dataset.view !== "sort";
       const old = b.querySelector(".lock"); if (old) old.remove();
-      if (lockable && !unlocked()) b.append(el("span", { class: "lock", "aria-label": "(locked until you check)", text: "· after Check" }));
+      if (b.dataset.view === "prog" && !unlocked()) b.append(el("span", { class: "lock", "aria-label": "(locked until the board is checked)", text: "· after Check" }));
     });
     $("view-sort").hidden = view !== "sort";
     $("view-prog").hidden = view !== "prog";
@@ -633,20 +704,27 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     if (view === "room") renderRoom();
     renderSort();
   }));
+  function rerender() {
+    renderSort();
+    if (view === "prog") renderProg();
+    if (view === "room") renderRoom();
+    if (detailId && $("detail").open) openDetail(detailId);
+  }
 
   // ---------- controls ----------
+  document.querySelectorAll("#tablePick button[data-table]").forEach(b => b.addEventListener("click", () => setTable(Number(b.dataset.table))));
   $("btnCheck").addEventListener("click", () => {
-    if (state.checked) { state.checked = false; showAnswers = false; persist(); renderSort(); return; }
-    const left = unplaced().length;
-    if (left) { $("checkConfirmText").textContent = left + " tiles are still in the tray. Unplaced tiles count as not placed."; $("checkConfirm").hidden = false; return; }
-    doCheck();
+    if (!canControl()) return;
+    if (state.checked) { setChecked(false); return; }
+    const left = TILES.filter(t => !state.placements[t.id]).length;
+    if (left) { $("checkConfirmText").textContent = left + " cards are still off the board. They will count as not placed."; $("checkConfirm").hidden = false; return; }
+    setChecked(true);
   });
-  function doCheck() { $("checkConfirm").hidden = true; state.checked = true; state.everChecked = true; selected = null; persist(); renderSort(); }
-  $("checkYes").addEventListener("click", doCheck);
+  $("checkYes").addEventListener("click", () => { $("checkConfirm").hidden = true; setChecked(true); });
   $("checkNo").addEventListener("click", () => { $("checkConfirm").hidden = true; });
-  $("btnReset").addEventListener("click", () => { $("resetConfirm").hidden = false; });
+  $("btnReset").addEventListener("click", () => { if (canControl()) $("resetConfirm").hidden = false; });
   $("resetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; });
-  $("resetYes").addEventListener("click", () => { $("resetConfirm").hidden = true; const ever = state.everChecked; state = freshState(); state.everChecked = ever; selected = null; showAnswers = false; persist(); renderSort(); });
+  $("resetYes").addEventListener("click", () => { $("resetConfirm").hidden = true; clearBoard(); });
   $("selCancel").addEventListener("click", () => { selected = null; renderSort(); });
   $("selTray").addEventListener("click", () => { if (selected) place(selected, null); });
   const tray = $("tray");
@@ -659,7 +737,25 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   let toastTimer;
   function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500); }
 
-  // ---------- persistence: this browser + Firebase (eips-planner-dev, ceflSortSessions) ----------
+  function setChecked(v) {
+    state.checked = v;
+    if (v) { state.everChecked = true; selected = null; } else showAnswers = false;
+    saveLocal(); rerender();
+    if (live) fb.fs.setDoc(fb.meta, { checked: v, updatedAt: fb.fs.serverTimestamp() }).catch(onWriteError);
+  }
+  async function clearBoard() {
+    const ids = Object.keys(state.placements);
+    state.placements = {}; selected = null; showAnswers = false;
+    if (state.checked) setChecked(false); else { saveLocal(); rerender(); }
+    if (!live || !ids.length) return;
+    try {
+      const batch = fb.fs.writeBatch(fb.db);
+      ids.forEach(id => batch.set(fb.fs.doc(fb.cards, id), { key: "", by: uid, updatedAt: fb.fs.serverTimestamp() }));
+      await batch.commit();
+    } catch (e) { onWriteError(e); }
+  }
+
+  // ---------- shared board: Firebase (eips-planner-dev, ceflSortSessions/{session}/cards and /meta/state) ----------
   // The web config below is public by design. Access is controlled by the Firestore rules block.
   const FB_CONFIG = {
     apiKey: "AIzaSyAgKPb0soFXspLJWb5WvKXBFf91Xf3JmU8",
@@ -671,28 +767,16 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   };
   const FB_VER = "10.12.2";
   const setStatus = t => { $("saveStatus").textContent = t; };
-  let lastError = "";
   const why = e => (e && (e.code || e.message || e.name)) ? String(e.code || e.message || e.name).slice(0, 90) : "unknown";
-
-  let writeTimer = null, writing = false, dirty = false;
-  function persist() {
-    saveLocal();
-    if (!live || !canWrite) return;
-    dirty = true;
-    clearTimeout(writeTimer);
-    writeTimer = setTimeout(flush, 700);
+  function onWriteError(e) {
+    console.warn("Save failed", e);
+    lastError = "save refused (" + why(e) + ")";
+    setStatus("Not saving to the room · " + lastError);
   }
-  async function flush() {
-    if (writing || !dirty) return;
-    writing = true; dirty = false;
-    try {
-      await fb.fs.setDoc(fb.mine, { placements: { ...state.placements }, checked: !!state.checked, updatedAt: fb.fs.serverTimestamp() });
-      setStatus("Saved and shared with the room");
-    } catch (e) {
-      console.warn("Save failed", e);
-      if (e && e.code === "permission-denied") { canWrite = false; lastError = "save refused (" + why(e) + ")"; setStatus("Saved on this device only · " + lastError); }
-      else { dirty = true; setTimeout(flush, 2000 + Math.random() * 1500); }
-    } finally { writing = false; if (dirty) { clearTimeout(writeTimer); writeTimer = setTimeout(flush, 700); } }
+  function writeCard(id, key) {
+    fb.fs.setDoc(fb.fs.doc(fb.cards, id), { key: key || "", by: uid, updatedAt: fb.fs.serverTimestamp() })
+      .then(() => setStatus("Live · shared with the room"))
+      .catch(onWriteError);
   }
 
   async function connect() {
@@ -707,48 +791,45 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
     const user = auth.currentUser || (await authM.signInAnonymously(auth)).user;
     uid = user.uid;
     const db = fs.getFirestore(app);
-    const col = fs.collection(db, "ceflSortSessions", SESSION, "sorts");
-    fb = { fs, db, col, mine: fs.doc(col, uid) };
-
-    // Restore this browser's saved sort if the board here is empty (e.g. cleared site data on the same login).
-    try {
-      const snap = await fs.getDoc(fb.mine);
-      const d = snap.exists() ? snap.data() : null;
-      if (d && d.placements && !Object.keys(state.placements).length) {
-        const pl = {};
-        Object.entries(d.placements).forEach(([k, v]) => { if (T[k] && /^[789]-[123]$/.test(v)) pl[k] = v; });
-        state.placements = pl; state.checked = !!d.checked; if (d.checked) state.everChecked = true;
+    const cards = fs.collection(db, "ceflSortSessions", SESSION, "cards");
+    const meta = fs.doc(db, "ceflSortSessions", SESSION, "meta", "state");
+    fb = { fs, db, cards, meta };
+    let gotCards = false, gotMeta = false;
+    const ready = () => {
+      if (!gotCards || !gotMeta || live) return;
+      live = true; setStatus("Live · shared with the room"); rerender();
+    };
+    fs.onSnapshot(cards, qs => {
+      const pl = {};
+      qs.docs.forEach(d => { const k = (d.data() || {}).key; if (T[d.id] && VALID_KEY.test(k)) pl[d.id] = k; });
+      state.placements = pl;
+      if (selected && !canMove(selected)) selected = null;
+      saveLocal(); gotCards = true;
+      if (live) rerender(); else ready();
+    }, e => { console.warn("Board feed stopped", e); lastError = "board feed stopped (" + why(e) + ")"; setStatus("Not connected · " + lastError); });
+    fs.onSnapshot(meta, s => {
+      const c = !!(s.exists() && (s.data() || {}).checked === true);
+      gotMeta = true;
+      if (c !== state.checked) {
+        state.checked = c;
+        if (c) { state.everChecked = true; selected = null; } else showAnswers = false;
         saveLocal();
+        if (live) rerender();
       }
-    } catch (e) { console.warn("Restore failed", e); }
-
-    live = true;
-    setStatus("Saved and shared with the room");
-    if (Object.keys(state.placements).length) { dirty = true; flush(); }
-    renderSort();
-    fs.onSnapshot(col, qs => {
-      roomDocs = qs.docs.map(d => d.data() || {}).filter(d => d && typeof d.placements === "object");
-      if (view === "room") renderRoom();
-    }, e => console.warn("Room feed stopped", e));
+      ready();
+    }, e => { console.warn("Check feed stopped", e); lastError = "check feed stopped (" + why(e) + ")"; });
   }
 
-  // Another tab of this page saved a change: take it, so every open tab shows the same board.
+  // Another tab of this page changed tables: follow it.
   window.addEventListener("storage", e => {
     if (e.key !== LS) return;
-    const before = JSON.stringify(state.placements);
-    loadLocal();
-    if (JSON.stringify(state.placements) === before) return;
-    selected = null; showAnswers = false;
-    try { if ($("detail").open) $("detail").close(); } catch (err) {}
-    renderSort();
-    if (view === "prog") renderProg();
-    if (view === "room") renderRoom();
+    try { const s = JSON.parse(e.newValue || "null"); const t = s && TABLES.includes(s.myTable) ? s.myTable : null; if (t !== myTable) { myTable = t; selected = null; renderSort(); } } catch (err) {}
   });
 
   // ---------- boot ----------
   loadLocal();
   renderSort();
-  connect().catch(e => { console.warn("Room connection failed", e); live = false; lastError = "couldn't connect (" + why(e) + ")"; setStatus("Saved on this device only · " + lastError); renderSort(); });
+  connect().catch(e => { console.warn("Room connection failed", e); live = false; lastError = "couldn't connect (" + why(e) + ")"; setStatus("Not connected · this device only · " + lastError); renderSort(); });
 
   // ---------- PDF export: card fronts in their columns, then card backs ----------
   const JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
@@ -762,7 +843,9 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
   }
   // The PDF's built-in fonts cover Latin-1 only.
   const pdfText = t => String(t).replace(/[–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, "...").replace(/[^\x00-\xFF]/g, "");
-  const RGB = { ink: [22, 32, 31], muted: [86, 98, 95], line: [204, 212, 208], ok: [43, 122, 75], bad: [177, 61, 43], 1: [44, 106, 136], 2: [138, 101, 16], 3: [122, 60, 105] };
+  const RGB = { ink: [22, 32, 31], muted: [86, 98, 95], line: [204, 212, 208], ok: [43, 122, 75], bad: [177, 61, 43], oi: [61, 74, 71] };
+  const TRGB = { 1: [194, 90, 18], 2: [42, 89, 201], 3: [180, 47, 116] };
+  const TSOFT = { 1: [251, 233, 220], 2: [226, 234, 251], 3: [248, 225, 238] };
   const RESULT_TEXT = { ok: "Right box", grade: "Wrong grade", oi: "Right grade, wrong organizing idea" };
   const tagText = id => { const r = result(id); return r === "ok" ? "Right box" : r ? RESULT_TEXT[r] + ". Belongs in " + boxName(correctKey(T[id])) : ""; };
 
@@ -797,10 +880,10 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
           if (!ids.length) items.push({ kind: "empty", h: 14 });
           ids.forEach(id => {
             doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-            const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 16);
+            const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 18);
             doc.setFont("helvetica", "bold"); doc.setFontSize(7);
-            const tag = doc.splitTextToSize(pdfText(tagText(id)), CW - 16);
-            items.push({ kind: "tile", id, lines, tag, h: 8 + lines.length * LH + tag.length * 8.5 + 4 + 4 });
+            const tag = doc.splitTextToSize(pdfText(tagText(id)), CW - 18);
+            items.push({ kind: "tile", id, lines, tag, h: 18 + lines.length * LH + tag.length * 8.5 + 4 + 4 });
           });
           items.push({ kind: "gap", h: 6 });
         });
@@ -826,7 +909,8 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         doc.setFont("helvetica", "bold"); doc.setFontSize(15); setC(RGB.ink); doc.text(pdfText(title), M, M + 12);
         doc.setFont("helvetica", "normal"); doc.setFontSize(9); setC(RGB.muted); doc.text(pdfText(sub), M, M + 28);
       };
-      const sub = "My sort, " + today + ".  " + ok + " of " + TILES.length + " tiles in the right grade and organizing idea.  Card backs with the curriculum statements follow.";
+      const perTable = TABLES.map(n => "Table " + n + ": " + TILES.filter(t => t.table === n && result(t.id) === "ok").length + " of " + tableCount(n)).join(",  ");
+      const sub = "Room sort, " + today + ".  " + ok + " of " + TILES.length + " cards in the right grade and organizing idea (" + perTable + ").";
       for (let p = 0; p < frontPages; p++) {
         if (p > 0) doc.addPage("letter", "landscape");
         header("CEFL 7-9 Concept Sort" + (p ? " (continued)" : ""), sub);
@@ -838,21 +922,24 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
               doc.text("Grade " + g + (it.cont ? " (continued)" : ""), x, it.y + 12);
               doc.setDrawColor(...RGB.ink); doc.setLineWidth(1.2); doc.line(x, it.y + 18, x + CW, it.y + 18);
             } else if (it.kind === "oi") {
-              doc.setFillColor(...RGB[it.oi]); doc.rect(x, it.y + 4, 8, 8, "F");
-              doc.setFont("helvetica", "bold"); doc.setFontSize(9); setC(RGB[it.oi]);
+              doc.setFillColor(...RGB.oi); doc.rect(x, it.y + 4, 8, 8, "F");
+              doc.setFont("helvetica", "bold"); doc.setFontSize(9); setC(RGB.oi);
               doc.text(pdfText(OI_NAME[it.oi] + (it.cont ? " (continued)" : "")), x + 12, it.y + 11);
             } else if (it.kind === "empty") {
-              doc.setFont("helvetica", "italic"); doc.setFontSize(8); setC(RGB.muted); doc.text("No tiles placed here", x + 4, it.y + 9);
+              doc.setFont("helvetica", "italic"); doc.setFontSize(8); setC(RGB.muted); doc.text("No cards placed here", x + 4, it.y + 9);
             } else if (it.kind === "tile") {
               const r = result(it.id);
               const c = r === "ok" ? RGB.ok : RGB.bad;
-              doc.setDrawColor(...RGB.line); doc.setLineWidth(0.6);
-              doc.roundedRect(x, it.y, CW, it.h - 4, 3, 3, "S");
-              doc.setFillColor(...c); doc.rect(x, it.y, 3, it.h - 4, "F");
+              const tb = T[it.id].table;
+              doc.setFillColor(...TSOFT[tb]); doc.setDrawColor(...(r === "ok" ? RGB.ok : r ? RGB.bad : RGB.line)); doc.setLineWidth(r ? 1 : 0.6);
+              doc.roundedRect(x, it.y, CW, it.h - 4, 3, 3, "FD");
+              doc.setFillColor(...TRGB[tb]); doc.rect(x, it.y, 5, it.h - 4, "F");
+              doc.setFont("helvetica", "bold"); doc.setFontSize(7); setC(TRGB[tb]);
+              doc.text("TABLE " + tb, x + 11, it.y + 9);
               doc.setFont("helvetica", "normal"); doc.setFontSize(8); setC(RGB.ink);
-              doc.text(it.lines, x + 9, it.y + 11);
+              doc.text(it.lines, x + 11, it.y + 20);
               doc.setFont("helvetica", "bold"); doc.setFontSize(7); setC(c);
-              doc.text(it.tag, x + 9, it.y + 8 + it.lines.length * LH + 6);
+              doc.text(it.tag, x + 11, it.y + 17 + it.lines.length * LH + 6);
             }
           });
         });
@@ -860,16 +947,19 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
       const unplacedIds = seq.filter(id => !state.placements[id]);
       if (unplacedIds.length) {
         doc.addPage("letter", "landscape");
-        header("Tiles not placed", sub);
+        header("Cards not placed", sub);
         let ci = 0, y = TOP;
         unplacedIds.forEach(id => {
           doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-          const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 12);
-          const h = 8 + lines.length * LH + 6;
-          if (y + h > BOTTOM) { ci++; y = TOP; if (ci > 2) { doc.addPage("letter", "landscape"); header("Tiles not placed (continued)", sub); ci = 0; } }
+          const lines = doc.splitTextToSize(pdfText(num[id] + ". " + T[id].label), CW - 18);
+          const h = 18 + lines.length * LH + 6;
+          if (y + h > BOTTOM) { ci++; y = TOP; if (ci > 2) { doc.addPage("letter", "landscape"); header("Cards not placed (continued)", sub); ci = 0; } }
           const x = M + ci * (CW + GAP);
-          doc.setDrawColor(...RGB.line); doc.roundedRect(x, y, CW, h - 4, 3, 3, "S");
-          setC(RGB.ink); doc.text(lines, x + 6, y + 11);
+          const tb = T[id].table;
+          doc.setFillColor(...TSOFT[tb]); doc.setDrawColor(...RGB.line); doc.setLineWidth(0.6); doc.roundedRect(x, y, CW, h - 4, 3, 3, "FD");
+          doc.setFillColor(...TRGB[tb]); doc.rect(x, y, 5, h - 4, "F");
+          doc.setFont("helvetica", "bold"); doc.setFontSize(7); setC(TRGB[tb]); doc.text("TABLE " + tb, x + 11, y + 9);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8); setC(RGB.ink); doc.text(lines, x + 11, y + 20);
           y += h;
         });
       }
@@ -882,7 +972,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         doc.setFont("helvetica", "bold"); doc.setFontSize(14); setC(RGB.ink);
         doc.text(first ? "Card backs" : "Card backs (continued)", PM, PM + 10);
         doc.setFont("helvetica", "normal"); doc.setFontSize(9); setC(RGB.muted);
-        doc.text("Each card shows where you placed the tile and the curriculum statements it comes from, word for word.", PM, PM + 26);
+        doc.text("Each card shows its table, where that table placed it, where it belongs, and the curriculum statements it comes from, word for word.", PM, PM + 26);
         y = PM + 44;
       };
       newBackPage(true);
@@ -896,8 +986,9 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
           doc.setFont(font[0], font[1]); doc.setFontSize(size);
           blocks.push({ lines: doc.splitTextToSize(pdfText(text), TW - 10 - indent), font, size, color, lh: size * 1.25, gapAfter, indent });
         };
+        add("TABLE " + t.table + " CARD", ["helvetica", "bold"], 7.5, TRGB[t.table], 2);
         add(num[id] + ". " + t.label, ["helvetica", "bold"], 11, RGB.ink, 4);
-        add("You placed it in: " + (p ? boxName(p) + ". " + (r === "ok" ? "Correct." : RESULT_TEXT[r] + ".") : "Not placed."), ["helvetica", "bold"], 8.5, r === "ok" ? RGB.ok : RGB.bad, 2);
+        add("Table " + t.table + " placed it in: " + (p ? boxName(p) + ". " + (r === "ok" ? "Correct." : RESULT_TEXT[r] + ".") : "Not placed."), ["helvetica", "bold"], 8.5, r === "ok" ? RGB.ok : RGB.bad, 2);
         add((r === "ok" ? "The curriculum puts it in: " : "It belongs in: ") + boxName(correctKey(t)) + "  (OI." + t.oi + ".GQ." + t.lo + ".LO." + t.lo + ")", ["helvetica", "bold"], 8.5, RGB.ink, 4);
         add("Guiding question: " + lo.gq, ["helvetica", "normal"], 8.5, RGB.ink, 2);
         add("Learning outcome: " + lo.lo, ["helvetica", "normal"], 8.5, RGB.ink, 5);
@@ -916,12 +1007,12 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         }
         // Flow the card's blocks; keep the title with the next two lines, split anywhere else.
         const bh = b => b.lines.length * b.lh + b.gapAfter;
-        const headH = blocks.slice(0, 3).reduce((s, b) => s + bh(b), 0) + 10;
+        const headH = blocks.slice(0, 4).reduce((s, b) => s + bh(b), 0) + 10;
         if (y + headH > PB) newBackPage(false);
         let segTop = y; y += 10;
-        const bar = () => { doc.setFillColor(...RGB[t.oi]); doc.rect(PM, segTop, 3, y - segTop - 2, "F"); };
+        const bar = () => { doc.setFillColor(...TRGB[t.table]); doc.rect(PM, segTop, 4, y - segTop - 2, "F"); };
         blocks.forEach((b, i) => {
-          if (i >= 3 && y + bh(b) > PB) {
+          if (i >= 4 && y + bh(b) > PB) {
             bar(); newBackPage(false);
             segTop = y;
             doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); setC(RGB.muted);
@@ -944,7 +1035,7 @@ td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: now
         doc.setFont("helvetica", "normal"); doc.setFontSize(8); setC(RGB.muted);
         doc.text("Page " + i + " of " + n, w - 36, hgt - 20, { align: "right" });
       }
-      doc.save("CEFL-concept-sort-" + new Date().toISOString().slice(0, 10) + ".pdf");
+      doc.save("CEFL-concept-sort-" + SESSION + "-" + new Date().toISOString().slice(0, 10) + ".pdf");
     } catch (e) {
       console.warn(e);
       toast("The PDF couldn't be made. Check your internet connection and try again.");
